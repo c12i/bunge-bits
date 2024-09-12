@@ -1,0 +1,2 @@
+[workspace]
+members = ["yt_scrape"]
