@@ -1,3 +1,14 @@
+//! # YouTube Scraper Module
+//!
+//! This module provides functionality to scrape and parse stream data from YouTube,
+//! specifically tailored for the Parliament of Kenya Channel.
+//!
+//! ## Key Components
+//!
+//! - `Stream`: A struct representing a single YouTube stream.
+//! - `parse_streams`: A function to parse multiple streams from YouTube JSON data.
+//! - `extract_json_from_script`: A function to extract the `ytInitialData` JSON object from a YouTube page's HTML.
+
 use serde_json::{Map, Value};
 
 use crate::error::YtScrapeError;
@@ -20,6 +31,14 @@ impl Stream {
 impl TryFrom<&Map<String, Value>> for Stream {
     type Error = YtScrapeError;
 
+    /// Attempts to create a `Stream` from a JSON object.
+    ///
+    /// # Parameters
+    /// * `video_renderer`: A reference to a `Map<String, Value>` containing the video data.
+    ///
+    /// # Returns
+    /// * `Ok(Stream)` if parsing is successful.
+    /// * `Err(YtScrapeError)` if any required field is missing or cannot be parsed.
     fn try_from(video_renderer: &Map<String, Value>) -> Result<Self, Self::Error> {
         let id = video_renderer["videoId"].as_str().unwrap_or_default();
         let title = video_renderer["title"]["runs"][0]["text"].as_str().ok_or(
@@ -49,6 +68,14 @@ impl TryFrom<&Map<String, Value>> for Stream {
     }
 }
 
+/// Parses multiple streams from the provided JSON data.
+///
+/// # Parameters
+/// * `json`: A reference to a `Value` containing the YouTube page's JSON data.
+///
+/// # Returns
+/// * `Ok(Vec<Stream>)` containing all successfully parsed streams.
+/// * `Err(YtScrapeError)` if the JSON structure is unexpected or parsing fails.
 pub fn parse_streams(json: &Value) -> Result<Vec<Stream>, YtScrapeError> {
     let mut streams = Vec::new();
 
