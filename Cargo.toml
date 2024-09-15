@@ -1,2 +1,4 @@
 [workspace]
-members = ["yt_scrape"]
+members = ["yt_scrape", "ytdlp_bindings"]
+
+resolver = "2"
