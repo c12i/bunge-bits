@@ -13,9 +13,9 @@ use serde_json::{Map, Value};
 
 use crate::error::YtScrapeError;
 
-#[derive(Debug)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct Stream {
-    pub id: String,
+    pub video_id: String,
     pub title: String,
     pub view_count: String,
     pub streamed_date: String,
@@ -24,7 +24,7 @@ pub struct Stream {
 
 impl Stream {
     pub fn url(&self) -> String {
-        format!("https://www.youtube.com/watch?v={}", self.id)
+        format!("https://www.youtube.com/watch?v={}", self.video_id)
     }
 }
 
@@ -40,7 +40,7 @@ impl TryFrom<&Map<String, Value>> for Stream {
     /// * `Ok(Stream)` if parsing is successful.
     /// * `Err(YtScrapeError)` if any required field is missing or cannot be parsed.
     fn try_from(video_renderer: &Map<String, Value>) -> Result<Self, Self::Error> {
-        let id = video_renderer["videoId"].as_str().unwrap_or_default();
+        let video_id = video_renderer["videoId"].as_str().unwrap_or_default();
         let title = video_renderer["title"]["runs"][0]["text"].as_str().ok_or(
             YtScrapeError::ParseError("Failed to get video title via ['title']['runs'][0]['text']"),
         )?;
@@ -59,7 +59,7 @@ impl TryFrom<&Map<String, Value>> for Stream {
         )?;
 
         Ok(Stream {
-            id: id.to_string(),
+            video_id: video_id.to_string(),
             title: title.to_string(),
             view_count: view_count.to_string(),
             streamed_date: streamed_date.to_string(),
