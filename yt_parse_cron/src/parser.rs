@@ -9,26 +9,15 @@
 //! - `parse_streams`: A function to parse multiple streams from YouTube JSON data.
 //! - `extract_json_from_script`: A function to extract the `ytInitialData` JSON object from a YouTube page's HTML.
 
+use bunge_bits_datastore::Stream;
 use serde_json::{Map, Value};
 
 use crate::error::YtScrapeError;
 
-#[derive(Debug, sqlx::FromRow)]
-pub struct Stream {
-    pub video_id: String,
-    pub title: String,
-    pub view_count: String,
-    pub streamed_date: String,
-    pub duration: String,
-}
+#[derive(Debug)]
+struct StreamWrapper(Stream);
 
-impl Stream {
-    pub fn url(&self) -> String {
-        format!("https://www.youtube.com/watch?v={}", self.video_id)
-    }
-}
-
-impl TryFrom<&Map<String, Value>> for Stream {
+impl TryFrom<&Map<String, Value>> for StreamWrapper {
     type Error = YtScrapeError;
 
     /// Attempts to create a `Stream` from a JSON object.
@@ -58,13 +47,15 @@ impl TryFrom<&Map<String, Value>> for Stream {
             YtScrapeError::ParseError("Failed to get duration via ['lengthText']['simpleText']"),
         )?;
 
-        Ok(Stream {
+        let stream = Stream {
             video_id: video_id.to_string(),
             title: title.to_string(),
             view_count: view_count.to_string(),
             streamed_date: streamed_date.to_string(),
             duration: duration.to_string(),
-        })
+        };
+
+        Ok(StreamWrapper(stream))
     }
 }
 
@@ -87,7 +78,7 @@ pub fn parse_streams(json: &Value) -> Result<Vec<Stream>, YtScrapeError> {
             if let Some(video_renderer) =
                 item["richItemRenderer"]["content"]["videoRenderer"].as_object()
             {
-                let stream = Stream::try_from(video_renderer)?;
+                let StreamWrapper(stream) = StreamWrapper::try_from(video_renderer)?;
                 streams.push(stream);
             }
         }

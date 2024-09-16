@@ -4,6 +4,4 @@ pub enum YtScrapeError {
     ParseError(&'static str),
     #[error(transparent)]
     InternalError(#[from] anyhow::Error),
-    #[error("UniqueConstraintViolation: {0}")]
-    UniqueConstraintViolation(#[source] anyhow::Error),
 }

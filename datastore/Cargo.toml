@@ -1,0 +1,9 @@
+[package]
+name = "bunge_bits_datastore"
+version = "0.1.0"
+edition = "2021"
+authors = ["c12i <hello@collinsmuriuki.xyz>"]
+
+[dependencies]
+sqlx = { version = "0.8.2", features = ["runtime-tokio", "sqlite"] }
+anyhow = "1.0"

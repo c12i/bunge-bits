@@ -1,29 +1,12 @@
-//! # DataStore Module
-//!
-//! This module provides functionality for interacting with a SQLite database
-//! to store and retrieve information about YouTube streams and their closed captions.
-//!
-//! The module uses sqlx for database operations and provides an abstraction layer
-//! for CRUD operations on streams and their associated closed captions.
-
+use crate::{Stream, StreamClosedCaptions};
 use anyhow::Context;
 use sqlx::{Sqlite, SqlitePool, Transaction};
-
-use crate::{error::YtScrapeError, Stream};
 
 #[derive(Debug, Clone)]
 pub struct DataStore(SqlitePool);
 
-/// Represents the closed captions associated with a YouTube stream.
-#[derive(Debug, sqlx::FromRow)]
-pub struct StreamClosedCaptions {
-    pub video_id: String,
-    pub closed_caption_text: String,
-    pub closed_caption_summary: Option<String>,
-}
-
 impl DataStore {
-    pub async fn new(database_url: &str) -> Result<Self, YtScrapeError> {
+    pub async fn new(database_url: &str) -> anyhow::Result<Self> {
         let pool = SqlitePool::connect(database_url)
             .await
             .context("Failed to connect to database")?;
@@ -57,7 +40,7 @@ impl DataStore {
         Ok(DataStore(pool))
     }
 
-    pub async fn insert_stream(&self, stream: &Stream) -> Result<(), YtScrapeError> {
+    pub async fn insert_stream(&self, stream: &Stream) -> anyhow::Result<()> {
         let result = sqlx::query(
             "INSERT INTO streams (video_id, title, view_count, streamed_date, duration)
            VALUES (?, ?, ?, ?, ?)",
@@ -73,16 +56,16 @@ impl DataStore {
         match result {
             Ok(_) => Ok(()),
             Err(sqlx::Error::Database(db_err)) if db_err.is_unique_violation() => {
-                Err(YtScrapeError::UniqueConstraintViolation(db_err.into()))
+                Err(db_err.into())
             }
-            Err(err) => Err(YtScrapeError::InternalError(err.into())),
+            Err(err) => Err(err.into()),
         }
     }
 
     pub async fn bulk_insert_streams(
         &self,
         streams: &[Stream],
-    ) -> Result<BulkInsertResult, YtScrapeError> {
+    ) -> anyhow::Result<BulkInsertResult> {
         let mut transaction = self
             .0
             .begin()
@@ -113,7 +96,7 @@ impl DataStore {
         &self,
         transaction: &mut Transaction<'_, Sqlite>,
         streams: &[Stream],
-    ) -> Result<BulkInsertResult, YtScrapeError> {
+    ) -> anyhow::Result<BulkInsertResult> {
         let mut successful_inserts = 0;
         let mut failed_inserts = Vec::new();
 
@@ -153,7 +136,7 @@ impl DataStore {
         })
     }
 
-    pub async fn get_stream(&self, video_id: &str) -> Result<Option<Stream>, YtScrapeError> {
+    pub async fn get_stream(&self, video_id: &str) -> anyhow::Result<Option<Stream>> {
         let stream = sqlx::query_as::<_, Stream>("SELECT * FROM streams WHERE video_id = ?")
             .bind(video_id)
             .fetch_optional(&self.0)
@@ -163,7 +146,7 @@ impl DataStore {
         Ok(stream)
     }
 
-    pub async fn update_stream(&self, stream: &Stream) -> Result<(), YtScrapeError> {
+    pub async fn update_stream(&self, stream: &Stream) -> anyhow::Result<()> {
         sqlx::query(
             "UPDATE streams SET title = ?, view_count = ?, streamed_date = ?, duration = ?
            WHERE video_id = ?",
@@ -180,7 +163,7 @@ impl DataStore {
         Ok(())
     }
 
-    pub async fn delete_stream(&self, video_id: &str) -> Result<(), YtScrapeError> {
+    pub async fn delete_stream(&self, video_id: &str) -> anyhow::Result<()> {
         sqlx::query("DELETE FROM streams WHERE video_id = ?")
             .bind(video_id)
             .execute(&self.0)
@@ -190,7 +173,7 @@ impl DataStore {
         Ok(())
     }
 
-    pub async fn list_streams(&self) -> Result<Vec<Stream>, YtScrapeError> {
+    pub async fn list_streams(&self) -> anyhow::Result<Vec<Stream>> {
         let streams = sqlx::query_as::<_, Stream>("SELECT * FROM streams")
             .fetch_all(&self.0)
             .await
@@ -202,7 +185,7 @@ impl DataStore {
     pub async fn insert_closed_captions(
         &self,
         closed_captions: &StreamClosedCaptions,
-    ) -> Result<(), YtScrapeError> {
+    ) -> anyhow::Result<()> {
         sqlx::query(
           r#"INSERT INTO stream_closed_captions (video_id, closed_caption_text, closed_caption_summary)
              VALUES (?, ?, ?)"#,
@@ -220,7 +203,7 @@ impl DataStore {
     pub async fn get_closed_captions(
         &self,
         video_id: &str,
-    ) -> Result<Option<StreamClosedCaptions>, YtScrapeError> {
+    ) -> anyhow::Result<Option<StreamClosedCaptions>> {
         let closed_captions = sqlx::query_as::<_, StreamClosedCaptions>(
             "SELECT * FROM stream_closed_captions WHERE video_id = ?",
         )
@@ -235,7 +218,7 @@ impl DataStore {
     pub async fn update_closed_captions(
         &self,
         closed_captions: &StreamClosedCaptions,
-    ) -> Result<(), YtScrapeError> {
+    ) -> anyhow::Result<()> {
         sqlx::query(
             r#"UPDATE stream_closed_captions 
              SET closed_caption_text = ?, closed_caption_summary = ?
@@ -251,7 +234,7 @@ impl DataStore {
         Ok(())
     }
 
-    pub async fn delete_closed_captions(&self, video_id: &str) -> Result<(), YtScrapeError> {
+    pub async fn delete_closed_captions(&self, video_id: &str) -> anyhow::Result<()> {
         sqlx::query("DELETE FROM stream_closed_captions WHERE video_id = ?")
             .bind(video_id)
             .execute(&self.0)
@@ -286,11 +269,10 @@ pub enum InsertFailReason {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Stream;
-    use anyhow::Result;
+    use crate::{Stream, StreamClosedCaptions};
 
     #[sqlx::test]
-    async fn test_datastore_crud_operations() -> Result<(), YtScrapeError> {
+    async fn test_datastore_crud_operations() -> anyhow::Result<()> {
         let db = DataStore::new("sqlite::memory:").await?;
 
         // Test inserting a stream
@@ -330,7 +312,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_bulk_insert_streams_transaction() -> Result<(), YtScrapeError> {
+    async fn test_bulk_insert_streams_transaction() -> anyhow::Result<()> {
         let db = DataStore::new("sqlite::memory:").await?;
 
         let streams = vec![
@@ -375,7 +357,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_datastore_error_handling() -> Result<(), YtScrapeError> {
+    async fn test_datastore_error_handling() -> anyhow::Result<()> {
         let db = DataStore::new("sqlite::memory:").await?;
 
         // Test getting a non-existent stream
@@ -423,7 +405,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_datastore_multiple_streams() -> Result<(), YtScrapeError> {
+    async fn test_datastore_multiple_streams() -> anyhow::Result<()> {
         let db = DataStore::new("sqlite::memory:").await?;
 
         // Insert multiple streams
@@ -478,7 +460,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_closed_captions_crud() -> Result<(), YtScrapeError> {
+    async fn test_closed_captions_crud() -> anyhow::Result<()> {
         let db = DataStore::new("sqlite::memory:").await?;
 
         // First, insert a stream

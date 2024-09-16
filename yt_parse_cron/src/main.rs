@@ -42,7 +42,7 @@
 
 use anyhow::Result;
 use reqwest;
-use yt_scrape::{extract_json_from_script, parse_streams};
+use yt_parse_cron::{extract_json_from_script, parse_streams};
 
 #[tokio::main]
 async fn main() -> Result<()> {
