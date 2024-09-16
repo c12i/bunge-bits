@@ -1,0 +1,18 @@
+[package]
+name = "web-app"
+version = "0.1.0"
+authors = ["c12i <hello@collinsmuriuki.xyz>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0.197", features = ["derive"] }
+dioxus = { version = "0.5", features = ["fullstack", "router"] }
+# Debug
+dioxus-logger = "0.5.1"
+
+[features]
+default = []
+server = ["dioxus/axum"]
+web = ["dioxus/web"]
