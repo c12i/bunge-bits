@@ -1,3 +1,3 @@
-# bunge-bits
+# Bunge Bits
 
-Get the Kenyan National Assembly and Senate seatings conveniently summarized for your reading.
+Bunge Bits provides convenient summaries of Kenyan National Assembly and Senate seatings, making legislative information more accessible and digestible.
