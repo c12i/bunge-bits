@@ -10,9 +10,10 @@
 //! - `extract_json_from_script`: A function to extract the `ytInitialData` JSON object from a YouTube page's HTML.
 
 use bunge_bits_datastore::Stream;
+use serde::Deserialize;
 use serde_json::{Map, Value};
 
-use crate::error::YtScrapeError;
+use crate::error::Error;
 
 /// Parses multiple streams from the provided JSON data.
 ///
@@ -22,7 +23,7 @@ use crate::error::YtScrapeError;
 /// # Returns
 /// * `Ok(Vec<Stream>)` containing all successfully parsed streams.
 /// * `Err(YtScrapeError)` if the JSON structure is unexpected or parsing fails.
-pub fn parse_streams(json: &Value) -> Result<Vec<Stream>, YtScrapeError> {
+pub fn parse_streams(json: &Value) -> Result<Vec<Stream>, Error> {
     let mut streams = Vec::new();
 
     if let Some(contents) = json["contents"]["twoColumnBrowseResultsRenderer"]["tabs"]
@@ -38,7 +39,7 @@ pub fn parse_streams(json: &Value) -> Result<Vec<Stream>, YtScrapeError> {
             }
         }
     } else {
-        return Err(YtScrapeError::ParseError(
+        return Err(Error::ParseError(
             "Failed to get script contents, structure might have changed",
         ));
     }
@@ -50,7 +51,7 @@ pub fn parse_streams(json: &Value) -> Result<Vec<Stream>, YtScrapeError> {
 struct StreamWrapper(Stream);
 
 impl TryFrom<&Map<String, Value>> for StreamWrapper {
-    type Error = YtScrapeError;
+    type Error = Error;
 
     /// Attempts to create a `Stream` from a JSON object.
     ///
@@ -62,22 +63,28 @@ impl TryFrom<&Map<String, Value>> for StreamWrapper {
     /// * `Err(YtScrapeError)` if any required field is missing or cannot be parsed.
     fn try_from(video_renderer: &Map<String, Value>) -> Result<Self, Self::Error> {
         let video_id = video_renderer["videoId"].as_str().unwrap_or_default();
-        let title = video_renderer["title"]["runs"][0]["text"].as_str().ok_or(
-            YtScrapeError::ParseError("Failed to get video title via ['title']['runs'][0]['text']"),
-        )?;
+        let title =
+            video_renderer["title"]["runs"][0]["text"]
+                .as_str()
+                .ok_or(Error::ParseError(
+                    "Failed to get video title via ['title']['runs'][0]['text']",
+                ))?;
         let view_count = video_renderer["viewCountText"]["simpleText"]
             .as_str()
-            .ok_or(YtScrapeError::ParseError(
+            .ok_or(Error::ParseError(
                 "Failed to get video view count via ['viewCountText']['simpleText']",
             ))?;
         let streamed_date = video_renderer["publishedTimeText"]["simpleText"]
             .as_str()
-            .ok_or(YtScrapeError::ParseError(
+            .ok_or(Error::ParseError(
                 "Failed to get streamed_date via ['publishedTimeText']['simpleText']",
             ))?;
-        let duration = video_renderer["lengthText"]["simpleText"].as_str().ok_or(
-            YtScrapeError::ParseError("Failed to get duration via ['lengthText']['simpleText']"),
-        )?;
+        let duration =
+            video_renderer["lengthText"]["simpleText"]
+                .as_str()
+                .ok_or(Error::ParseError(
+                    "Failed to get duration via ['lengthText']['simpleText']",
+                ))?;
 
         let stream = Stream {
             video_id: video_id.to_string(),
@@ -108,13 +115,13 @@ impl TryFrom<&Map<String, Value>> for StreamWrapper {
 /// * `document`: The entire HTML content of the YouTube page as a string.
 ///
 /// # Returns
-/// * `Option<Value>`: Some(Value) if the JSON was successfully extracted and parsed,
+/// * `Option<T>`: Some(T) if the JSON was successfully extracted and parsed,
 ///                    None if the JSON couldn't be found or parsed.
 ///
 /// # Note
 /// This method is somewhat fragile as it depends on the specific structure of YouTube's
 /// HTML. If YouTube changes how they embed this data, this function may need to be updated.
-pub fn extract_json_from_script(document: &str) -> Result<Value, YtScrapeError> {
+pub fn extract_json_from_script<T: for<'a> Deserialize<'a>>(document: &str) -> Result<T, Error> {
     let re =
         regex::Regex::new(r"(?s)<script[^>]*>\s*var\s+ytInitialData\s*=\s*(\{.*?\});\s*</script>")
             .unwrap();
@@ -122,7 +129,7 @@ pub fn extract_json_from_script(document: &str) -> Result<Value, YtScrapeError> 
         .captures(document)
         .and_then(|cap| cap.get(1))
         .and_then(|m| serde_json::from_str(m.as_str()).ok())
-        .ok_or(YtScrapeError::ParseError(
+        .ok_or(Error::ParseError(
             "Failed to extract ytInitialData from the page's script tag",
         ));
 
@@ -149,7 +156,7 @@ mod tests {
             </html>
         "#;
 
-        let result = extract_json_from_script(html_content);
+        let result = extract_json_from_script::<Value>(html_content);
         println!("Extraction result: {:?}", result);
         assert!(result.is_ok(), "Failed to extract JSON: {:?}", result.err());
         let json = result.unwrap();
@@ -166,7 +173,7 @@ mod tests {
             </script>
         "#;
 
-        let result = extract_json_from_script(html_content_special);
+        let result = extract_json_from_script::<Value>(html_content_special);
         println!("Extraction result: {:?}", result);
         assert!(
             result.is_ok(),
@@ -189,7 +196,7 @@ mod tests {
             </script>
         "#;
 
-        let result = extract_json_from_script(html_content_multiple);
+        let result = extract_json_from_script::<Value>(html_content_multiple);
         println!("Extraction result: {:?}", result);
         assert!(
             result.is_ok(),
@@ -210,10 +217,10 @@ mod tests {
             </html>
         "#;
 
-        let result = extract_json_from_script(html_content_no_data);
+        let result = extract_json_from_script::<Value>(html_content_no_data);
         println!("Extraction result: {:?}", result);
         assert!(result.is_err(), "Expected an error, but got: {:?}", result);
-        assert!(matches!(result, Err(YtScrapeError::ParseError(_))));
+        assert!(matches!(result, Err(Error::ParseError(_))));
     }
 
     #[test]
@@ -224,9 +231,9 @@ mod tests {
             </script>
         "#;
 
-        let result = extract_json_from_script(html_content_invalid_json);
+        let result = extract_json_from_script::<Value>(html_content_invalid_json);
         println!("Extraction result: {:?}", result);
         assert!(result.is_err(), "Expected an error, but got: {:?}", result);
-        assert!(matches!(result, Err(YtScrapeError::ParseError(_))));
+        assert!(matches!(result, Err(Error::ParseError(_))));
     }
 }

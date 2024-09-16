@@ -1,5 +1,5 @@
 #[derive(thiserror::Error, Debug)]
-pub enum YtScrapeError {
+pub enum Error {
     #[error("ParseError: {0}")]
     ParseError(&'static str),
     #[error(transparent)]
