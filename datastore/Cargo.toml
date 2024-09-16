@@ -7,3 +7,5 @@ authors = ["c12i <hello@collinsmuriuki.xyz>"]
 [dependencies]
 sqlx = { version = "0.8.2", features = ["runtime-tokio", "sqlite"] }
 anyhow = "1.0"
+chrono = "0.4.38"
+regex = "1.10.6"
