@@ -1,5 +1,5 @@
 /// Represents the closed captions associated with a YouTube stream.
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, Default, sqlx::FromRow)]
 pub struct StreamClosedCaptions {
     pub video_id: String,
     pub closed_caption_text: String,

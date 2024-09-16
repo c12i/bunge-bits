@@ -1,6 +1,6 @@
 use chrono::{DateTime, Duration, Utc};
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, Default, sqlx::FromRow)]
 pub struct Stream {
     pub video_id: String,
     pub title: String,
@@ -19,9 +19,11 @@ impl Stream {
     /// # Example
     ///
     /// ```
+    /// use bunge_bits_datastore::Stream;
+    ///
     /// let stream = Stream {
     ///     video_id: "dQw4w9WgXcQ".to_string(),
-    ///     // ... other fields ...
+    ///     ..Default::default()
     /// };
     /// assert_eq!(stream.url(), "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
     /// ```
@@ -48,9 +50,11 @@ impl Stream {
     /// # Example
     ///
     /// ```
+    /// use bunge_bits_datastore::Stream;
+    ///
     /// let stream = Stream {
     ///     streamed_date: "2 hours ago".to_string(),
-    ///     // ... other fields ...
+    ///     ..Default::default()
     /// };
     /// let timestamp = stream.timestamp_from_time_ago();
     /// assert!(timestamp.is_some());
