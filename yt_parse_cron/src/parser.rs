@@ -14,6 +14,38 @@ use serde_json::{Map, Value};
 
 use crate::error::YtScrapeError;
 
+/// Parses multiple streams from the provided JSON data.
+///
+/// # Parameters
+/// * `json`: A reference to a `Value` containing the YouTube page's JSON data.
+///
+/// # Returns
+/// * `Ok(Vec<Stream>)` containing all successfully parsed streams.
+/// * `Err(YtScrapeError)` if the JSON structure is unexpected or parsing fails.
+pub fn parse_streams(json: &Value) -> Result<Vec<Stream>, YtScrapeError> {
+    let mut streams = Vec::new();
+
+    if let Some(contents) = json["contents"]["twoColumnBrowseResultsRenderer"]["tabs"]
+        .get(2)
+        .and_then(|tab| tab["tabRenderer"]["content"]["richGridRenderer"]["contents"].as_array())
+    {
+        for item in contents {
+            if let Some(video_renderer) =
+                item["richItemRenderer"]["content"]["videoRenderer"].as_object()
+            {
+                let StreamWrapper(stream) = StreamWrapper::try_from(video_renderer)?;
+                streams.push(stream);
+            }
+        }
+    } else {
+        return Err(YtScrapeError::ParseError(
+            "Failed to get script contents, structure might have changed",
+        ));
+    }
+
+    Ok(streams)
+}
+
 #[derive(Debug)]
 struct StreamWrapper(Stream);
 
@@ -59,38 +91,6 @@ impl TryFrom<&Map<String, Value>> for StreamWrapper {
     }
 }
 
-/// Parses multiple streams from the provided JSON data.
-///
-/// # Parameters
-/// * `json`: A reference to a `Value` containing the YouTube page's JSON data.
-///
-/// # Returns
-/// * `Ok(Vec<Stream>)` containing all successfully parsed streams.
-/// * `Err(YtScrapeError)` if the JSON structure is unexpected or parsing fails.
-pub fn parse_streams(json: &Value) -> Result<Vec<Stream>, YtScrapeError> {
-    let mut streams = Vec::new();
-
-    if let Some(contents) = json["contents"]["twoColumnBrowseResultsRenderer"]["tabs"]
-        .get(2)
-        .and_then(|tab| tab["tabRenderer"]["content"]["richGridRenderer"]["contents"].as_array())
-    {
-        for item in contents {
-            if let Some(video_renderer) =
-                item["richItemRenderer"]["content"]["videoRenderer"].as_object()
-            {
-                let StreamWrapper(stream) = StreamWrapper::try_from(video_renderer)?;
-                streams.push(stream);
-            }
-        }
-    } else {
-        return Err(YtScrapeError::ParseError(
-            "Failed to get script contents, structure might have changed",
-        ));
-    }
-
-    Ok(streams)
-}
-
 /// Extracts the `ytInitialData` JSON object from a YouTube page's HTML script.
 ///
 /// # Context
@@ -115,7 +115,9 @@ pub fn parse_streams(json: &Value) -> Result<Vec<Stream>, YtScrapeError> {
 /// This method is somewhat fragile as it depends on the specific structure of YouTube's
 /// HTML. If YouTube changes how they embed this data, this function may need to be updated.
 pub fn extract_json_from_script(document: &str) -> Result<Value, YtScrapeError> {
-    let re = regex::Regex::new(r"var ytInitialData = (.+?);</script>").unwrap();
+    let re =
+        regex::Regex::new(r"(?s)<script[^>]*>\s*var\s+ytInitialData\s*=\s*(\{.*?\});\s*</script>")
+            .unwrap();
     let result = re
         .captures(document)
         .and_then(|cap| cap.get(1))
@@ -125,4 +127,106 @@ pub fn extract_json_from_script(document: &str) -> Result<Value, YtScrapeError> 
         ));
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_successful_extraction() {
+        let html_content = r#"
+            <html>
+                <head>
+                    <script nonce="gZTn8MILMQFuWon1rDk2VA">
+                        var ytInitialData = {"key": "value", "number": 42};
+                    </script>
+                </head>
+                <body>
+                    <p>Some content</p>
+                </body>
+            </html>
+        "#;
+
+        let result = extract_json_from_script(html_content);
+        println!("Extraction result: {:?}", result);
+        assert!(result.is_ok(), "Failed to extract JSON: {:?}", result.err());
+        let json = result.unwrap();
+        assert_eq!(json, json!({"key": "value", "number": 42}));
+    }
+
+    #[test]
+    fn test_extraction_with_special_characters() {
+        let html_content_special = r#"
+            <script nonce="gZTn8MILMQFuWon1rDk2VA">
+                var ytInitialData = {
+                    "key": "value with \"quotes\" and \n newline"
+                };
+            </script>
+        "#;
+
+        let result = extract_json_from_script(html_content_special);
+        println!("Extraction result: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Failed to extract JSON with special characters: {:?}",
+            result.err()
+        );
+        let json = result.unwrap();
+        assert_eq!(
+            json["key"].as_str().unwrap().trim(),
+            "value with \"quotes\" and \n newline"
+        );
+    }
+
+    #[test]
+    fn test_extraction_with_multiple_occurrences() {
+        let html_content_multiple = r#"
+            <script nonce="gZTn8MILMQFuWon1rDk2VA">var ytInitialData = {"first": true};</script>
+            <script nonce="gZTn8MILMQFuWon1rDk2VA">
+                var ytInitialData = {"second": true};
+            </script>
+        "#;
+
+        let result = extract_json_from_script(html_content_multiple);
+        println!("Extraction result: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Failed to extract first JSON: {:?}",
+            result.err()
+        );
+        let json = result.unwrap();
+        assert_eq!(json, json!({"first": true}));
+    }
+
+    #[test]
+    fn test_extraction_with_no_data() {
+        let html_content_no_data = r#"
+            <html>
+                <body>
+                    <p>No ytInitialData here</p>
+                </body>
+            </html>
+        "#;
+
+        let result = extract_json_from_script(html_content_no_data);
+        println!("Extraction result: {:?}", result);
+        assert!(result.is_err(), "Expected an error, but got: {:?}", result);
+        assert!(matches!(result, Err(YtScrapeError::ParseError(_))));
+    }
+
+    #[test]
+    fn test_extraction_with_invalid_json() {
+        let html_content_invalid_json = r#"
+            <script nonce="gZTn8MILMQFuWon1rDk2VA">
+                var ytInitialData = {invalid: json};
+            </script>
+        "#;
+
+        let result = extract_json_from_script(html_content_invalid_json);
+        println!("Extraction result: {:?}", result);
+        assert!(result.is_err(), "Expected an error, but got: {:?}", result);
+        assert!(matches!(result, Err(YtScrapeError::ParseError(_))));
+    }
 }
