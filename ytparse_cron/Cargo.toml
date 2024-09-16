@@ -1,5 +1,5 @@
 [package]
-name = "yt_parse_cron"
+name = "ytparse_cron"
 version = "0.1.0"
 authors = ["c12i <hello@collinsmuriuki.xyz>"]
 edition = "2021"

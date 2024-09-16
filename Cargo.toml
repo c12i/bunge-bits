@@ -1,4 +1,4 @@
 [workspace]
-members = ["datastore", "yt_parse_cron", "ytdlp_bindings", "web_app"]
+members = ["datastore", "ytparse_cron", "ytdlp_bindings", "web_app"]
 
 resolver = "2"
