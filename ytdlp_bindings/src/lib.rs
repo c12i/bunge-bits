@@ -30,8 +30,9 @@
 //! ```
 
 mod error;
-pub mod file_types;
+mod file_types;
 mod ytldp;
 
 pub use error::YtDlpError;
+pub use file_types::vtt::{parse_vtt_content, SubtitleEntry, VttProcessor};
 pub use ytldp::YtDlp;
