@@ -12,7 +12,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let target_os = env::var("CARGO_CFG_TARGET_OS")?;
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH")?;
 
-    // Determine the appropriate filename based on the target platform
     let filename = match (target_os.as_str(), target_arch.as_str()) {
         ("windows", _) => "yt-dlp.exe",
         ("macos", "x86_64") => "yt-dlp_macos_legacy",
@@ -23,11 +22,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ => return Err(format!("Unsupported platform: {} {}", target_os, target_arch).into()),
     };
 
-    // Construct the download URL
-    let url =
-        format!("https://github.com/yt-dlp/yt-dlp/releases/download/{YTDLP_RELEASE}/{filename}");
-    println!("Download URL: {}", url);
-
     // Create an output directory for the binary
     let out_dir = env::var("OUT_DIR")?;
     let dest_path = Path::new(&out_dir).join("yt-dlp");
@@ -35,8 +29,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Download the file
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-env-changed=TARGET");
-
-    let mut response = reqwest::blocking::get(&url)?;
+    let mut response = reqwest::blocking::get(format!(
+        "https://github.com/yt-dlp/yt-dlp/releases/download/{YTDLP_RELEASE}/{filename}"
+    ))?;
     let mut dest = File::create(&dest_path)?;
     copy(&mut response, &mut dest)?;
 
