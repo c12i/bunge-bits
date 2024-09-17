@@ -41,7 +41,6 @@
 //! Different services may be responsible for various stages of the workflow.
 
 use anyhow::Result;
-use reqwest;
 use ytparse_cron::{extract_json_from_script, parse_streams};
 
 #[tokio::main]
