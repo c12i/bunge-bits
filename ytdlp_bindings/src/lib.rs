@@ -4,7 +4,8 @@
 //! which is used for downloading videos and subtitles from YouTube and other platforms.
 //!
 //! The main struct `YtDlp` offers methods to download subtitles and process VTT files.
-//! It also implements the `VttProcessor` trait for handling VTT subtitle files.
+//! It also implements the `VttProcessor` trait for handling VTT subtitle files and
+//! the `VideoProcessor` trait for handling video and audio files.
 //!
 //! This crate was developed to initially serve a single purpose of downloading closed
 //! captions from YouTube videos, hence the limited features. PRs are open to add more
