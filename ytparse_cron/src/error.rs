@@ -2,6 +2,8 @@
 pub enum Error {
     #[error("ParseError: {0}")]
     ParseError(&'static str),
+    #[error("Deserialization Error: {0}")]
+    DeserializationError(#[from] serde_json::Error),
     #[error(transparent)]
     InternalError(#[from] anyhow::Error),
 }

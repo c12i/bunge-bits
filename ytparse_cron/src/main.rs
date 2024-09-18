@@ -50,7 +50,7 @@ async fn main() -> Result<()> {
 
     match extract_json_from_script(&response) {
         Ok(json) => {
-            let dat = parse_streams(&json);
+            let dat = parse_streams(&json)?;
             println!("{:#?}", dat);
         }
         Err(e) => {
