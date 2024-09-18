@@ -1,4 +1,4 @@
-//! # YouTube Types
+//! # Yt Types
 //!
 //! This module contains type definitions for working with the `ytInitialData` object.
 //!

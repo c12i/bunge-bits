@@ -1,7 +1,7 @@
-//! # YouTube Scraper Module
+//! # Yt Parser
 //!
 //! This module provides functionality to scrape and parse stream data from YouTube,
-//! specifically tailored for the Parliament of Kenya Channel.
+//! specifically tailored for the Parliament of Kenya Channel live streams.
 //!
 //! ## Key Components
 //!
