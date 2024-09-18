@@ -16,9 +16,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("windows", _) => "yt-dlp.exe",
         ("macos", "x86_64") => "yt-dlp_macos_legacy",
         ("macos", "aarch64") => "yt-dlp_macos",
-        ("linux", "x86_64") => "yt-dlp_linux",
+        ("linux", "x86_64" | "x86") => "yt-dlp_linux",
         ("linux", "aarch64") => "yt-dlp_linux_aarch64",
-        ("linux", "armv7I") => "yt-dlp_linux_armv7I",
+        ("linux", "arm") => "yt-dlp_linux_armv7I",
         _ => return Err(format!("Unsupported platform: {} {}", target_os, target_arch).into()),
     };
 
