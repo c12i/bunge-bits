@@ -69,32 +69,37 @@ impl TryFrom<VideoRenderer> for StreamWrapper {
     /// # Returns
     /// * `Ok(Stream)` if parsing is successful.
     /// * `Err(YtScrapeError)` if any required field is missing or cannot be parsed.
-    fn try_from(video_renderer: VideoRenderer) -> Result<Self, Self::Error> {
-        let title = &video_renderer
-            .title
+    fn try_from(
+        VideoRenderer {
+            video_id,
+            title,
+            published_time_text,
+            view_count_text,
+            length_text,
+            ..
+        }: VideoRenderer,
+    ) -> Result<Self, Self::Error> {
+        let title = &title
             .runs
             .first()
             .ok_or(Error::ParseError(
                 "Failed to get video title via ['title']['runs'][0]['text']",
             ))?
             .text;
-        let view_count = video_renderer
-            .view_count_text
+        let view_count = view_count_text
             .ok_or(Error::ParseError("No value found for 'viewCountText'"))?
             .simple_text
             .ok_or(Error::ParseError("No valuefound for 'simpleText'"))?;
-        let streamed_date = video_renderer
-            .published_time_text
+        let streamed_date = published_time_text
             .ok_or(Error::ParseError("No value found for 'publishedTimeText'"))?
             .simple_text
             .ok_or(Error::ParseError("No value found for 'simpleText'"))?;
-        let duration = video_renderer
-            .length_text
+        let duration = length_text
             .ok_or(Error::ParseError("No value found for 'lengthText'"))?
             .simple_text;
 
         let stream = Stream {
-            video_id: video_renderer.video_id,
+            video_id,
             title: title.to_string(),
             view_count,
             streamed_date,
