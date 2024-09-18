@@ -12,7 +12,7 @@
 //!
 //! ```rust
 //! struct Stream {
-//!     id: String,
+//!     video_id: String,
 //!     title: String,
 //!     view_count: String,
 //!     streamed_date: String,
@@ -41,22 +41,74 @@
 //! Different services may be responsible for various stages of the workflow.
 
 use anyhow::Result;
-use ytparse_cron::{extract_json_from_script, parse_streams};
+use tokio_cron_scheduler::{JobBuilder, JobScheduler};
+use ytparse::{extract_json_from_script, parse_streams};
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let url = "https://www.youtube.com/@ParliamentofKenyaChannel/streams";
-    let response = reqwest::get(url).await?.text().await?;
+lazy_static::lazy_static! {
+    static ref CLIENT: Result<reqwest::Client, reqwest::Error> = {
+        reqwest::Client::builder()
+            // Because sometimes, even bots want to feel like humans.
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
+            .build()
+    };
+}
+
+//  Parliament of Kenya Channel Stream URL
+const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChannel/streams";
+// Should run every 12 hours
+const CRON_EXPR: &str = "0 0 */12 * * *";
+// const CRON_EXPR: &str = "*/15 * * * * *";
+
+async fn fetch_and_process_streams() -> Result<()> {
+    let client = CLIENT.as_ref()?;
+    let response = client.get(YOUTUBE_STREAM_URL).send().await?.text().await?;
 
     match extract_json_from_script(&response) {
         Ok(json) => {
-            let dat = parse_streams(&json)?;
-            println!("{:#?}", dat);
+            let streams = parse_streams(&json)?;
+
+            for stream in streams {
+                // Process the new stream
+                println!("Processing new stream: {}", stream.video_id);
+                // TODO: Implement stream processing logic here
+                // 1. Download and store the full transcript.
+                // 2. Generate a structured summary using an LLM service.
+                // 3. Create notifications for subscribers and update the web interface.
+            }
         }
         Err(e) => {
-            eprintln!("{}", e);
+            eprintln!("Error parsing streams: {}", e);
         }
     }
+
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let mut scheduler = JobScheduler::new().await?;
+
+    let job = JobBuilder::new()
+        .with_timezone(chrono_tz::Africa::Nairobi)
+        .with_cron_job_type()
+        .with_schedule(CRON_EXPR)?
+        .with_run_async(Box::new(|uuid, _| {
+            Box::pin(async move {
+                println!("Running cron job: {}", uuid);
+                if let Err(e) = fetch_and_process_streams().await {
+                    eprintln!("Error in cron job: {}", e);
+                }
+            })
+        }))
+        .build()?;
+
+    scheduler.add(job).await?;
+    scheduler.start().await?;
+
+    // Keep the main thread alive
+    tokio::signal::ctrl_c().await?;
+    println!("Shutting down scheduler...");
+    scheduler.shutdown().await?;
 
     Ok(())
 }

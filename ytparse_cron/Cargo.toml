@@ -4,6 +4,12 @@ version = "0.1.0"
 authors = ["c12i <hello@collinsmuriuki.xyz>"]
 edition = "2021"
 
+[[bin]]
+name = "ytparse_cron"
+
+[lib]
+name = "ytparse"
+
 [dependencies]
 bunge_bits_datastore = { version = "0.1.0", path = "../datastore" }
 reqwest = { version = "0.12", features = ["json"] }
@@ -14,3 +20,5 @@ serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
 thiserror = "1.0.63"
 tokio-cron-scheduler = "0.11.0"
+chrono-tz = "0.10.0"
+lazy_static = "1.5.0"
