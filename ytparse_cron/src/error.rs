@@ -1,3 +1,4 @@
+#[allow(clippy::enum_variant_names)]
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("ParseError: {0}")]

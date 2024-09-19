@@ -271,7 +271,7 @@ mod tests {
 
         ytdlp.download_auto_sub(
             "https://www.youtube.com/watch?v=p1OqRc15K3o",
-            &output_pattern,
+            output_pattern,
         )?;
 
         // Use glob to find the downloaded file
@@ -308,7 +308,7 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let output_template = temp_dir.path().join("%(title)s.%(ext)s");
 
-        let result = ytdlp.download_video(TEST_VIDEO_URL, &output_template);
+        let result = ytdlp.download_video(TEST_VIDEO_URL, output_template);
 
         assert!(
             result.is_ok(),
@@ -377,7 +377,7 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let output_template = temp_dir.path().join("%(playlist_index)s-%(title)s.%(ext)s");
 
-        let result = ytdlp.download_playlist(TEST_PLAYLIST_URL, &output_template);
+        let result = ytdlp.download_playlist(TEST_PLAYLIST_URL, output_template);
 
         assert!(
             result.is_ok(),

@@ -103,7 +103,7 @@ pub fn parse_vtt_content(content: &str) -> Vec<SubtitleEntry> {
                 let end_time = times[1].trim().to_string();
                 let mut text = String::new();
 
-                while let Some(text_line) = lines.next() {
+                for text_line in lines.by_ref() {
                     if text_line.is_empty() {
                         break;
                     }

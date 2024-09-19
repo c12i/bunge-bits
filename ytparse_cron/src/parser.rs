@@ -29,7 +29,7 @@ pub fn parse_streams(json: &Value) -> Result<Vec<Stream>, Error> {
     if let Some(contents) = json["contents"]["twoColumnBrowseResultsRenderer"]["tabs"]
         .get(2)
         .ok_or(Error::ParseError("Failed to get item at idx 2 from ytInitialData['contents']['twoColumnBrowseResultsRenderer']['tabs']"))
-        .and_then(|tab| Ok(tab["tabRenderer"]["content"]["richGridRenderer"]["contents"].as_array()))?
+        .map(|tab| tab["tabRenderer"]["content"]["richGridRenderer"]["contents"].as_array())?
     {
         for item in contents {
             if let Ok(video_renderer) =
