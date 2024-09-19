@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
     io::{BufRead, BufReader, Read},
@@ -47,7 +48,7 @@ pub trait VttProcessor {
     ) -> Result<Vec<SubtitleEntry>, YtDlpError>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtitleEntry {
     pub start_time: String,
     pub end_time: String,
