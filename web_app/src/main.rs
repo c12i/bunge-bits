@@ -3,7 +3,6 @@
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
 
-
 #[derive(Clone, Routable, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 enum Route {
     #[route("/")]
@@ -12,14 +11,12 @@ enum Route {
     Blog { id: i32 },
 }
 
-
 fn main() {
     // Init logger
     dioxus_logger::init(tracing::Level::INFO).expect("failed to init logger");
     tracing::info!("starting app");
     launch(App);
 }
-
 
 fn App() -> Element {
     rsx! {
@@ -65,7 +62,6 @@ fn Home() -> Element {
         }
     }
 }
-
 
 #[server(PostServerData)]
 async fn post_server_data(data: String) -> Result<(), ServerFnError> {
