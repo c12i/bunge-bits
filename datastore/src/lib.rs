@@ -9,5 +9,5 @@
 mod domain;
 mod store;
 
-pub use domain::{Stream, StreamClosedCaptions};
+pub use domain::Stream;
 pub use store::DataStore;

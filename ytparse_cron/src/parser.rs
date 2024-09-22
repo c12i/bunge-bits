@@ -104,6 +104,7 @@ impl TryFrom<VideoRenderer> for StreamWrapper {
             view_count,
             streamed_date,
             duration,
+            ..Default::default()
         };
 
         Ok(StreamWrapper(stream))

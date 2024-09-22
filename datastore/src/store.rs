@@ -1,4 +1,4 @@
-use crate::{Stream, StreamClosedCaptions};
+use crate::Stream;
 use anyhow::Context;
 use sqlx::{Sqlite, SqlitePool, Transaction};
 
@@ -11,13 +11,19 @@ impl DataStore {
             .await
             .context("Failed to connect to database")?;
 
+        // Create the streams table
         sqlx::query(
-            r#"CREATE TABLE IF NOT EXISTS streams (
-            video_id TEXT PRIMARY KEY,
-            title TEXT NOT NULL,
-            view_count TEXT NOT NULL,
-            streamed_date TEXT NOT NULL,
-            duration TEXT NOT NULL,
+            r#"
+            CREATE TABLE IF NOT EXISTS streams (
+                video_id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                view_count TEXT NOT NULL,
+                streamed_date TEXT NOT NULL,
+                stream_timestamp DATETIME NOT NULL,
+                duration TEXT NOT NULL,
+                closed_captions_vtt TEXT,
+                closed_captions_summary TEXT,
+                closed_captions_language TEXT,
             UNIQUE(video_id)
         )"#,
         )
@@ -25,31 +31,39 @@ impl DataStore {
         .await
         .context("Failed to create streams table")?;
 
-        sqlx::query(
-            r#"CREATE TABLE IF NOT EXISTS stream_closed_captions (
-              video_id TEXT PRIMARY KEY,
-              closed_caption_text TEXT NOT NULL,
-              closed_caption_summary TEXT,
-              FOREIGN KEY (video_id) REFERENCES streams(video_id)
-          )"#,
-        )
-        .execute(&pool)
-        .await
-        .context("Failed to create stream_closed_captions table")?;
-
         Ok(DataStore(pool))
     }
 
     pub async fn insert_stream(&self, stream: &Stream) -> anyhow::Result<()> {
         let result = sqlx::query(
-            "INSERT INTO streams (video_id, title, view_count, streamed_date, duration)
-           VALUES (?, ?, ?, ?, ?)",
+            r#"
+            INSERT INTO streams (
+                video_id,
+                title,
+                view_count,
+                streamed_date,
+                stream_timestamp,
+                duration,
+                closed_captions_vtt,
+                closed_captions_summary,
+                closed_captions_language
+            )
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
         )
         .bind(&stream.video_id)
         .bind(&stream.title)
         .bind(&stream.view_count)
         .bind(&stream.streamed_date)
+        .bind(
+            &stream
+                .timestamp_from_time_ago()
+                .context("Failed to get timestamp")?
+                .to_string(),
+        )
         .bind(&stream.duration)
+        .bind(&stream.closed_captions_vtt)
+        .bind(&stream.closed_captions_summary)
+        .bind(&stream.closed_captions_language)
         .execute(&self.0)
         .await;
 
@@ -102,14 +116,34 @@ impl DataStore {
 
         for stream in streams {
             let result = sqlx::query(
-                "INSERT INTO streams (video_id, title, view_count, streamed_date, duration)
-              VALUES (?, ?, ?, ?, ?)",
+                r#"
+                INSERT INTO streams (
+                    video_id,
+                    title,
+                    view_count,
+                    streamed_date,
+                    stream_timestamp,
+                    duration,
+                    closed_captions_vtt,
+                    closed_captions_summary,
+                    closed_captions_language
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
             )
             .bind(&stream.video_id)
             .bind(&stream.title)
             .bind(&stream.view_count)
             .bind(&stream.streamed_date)
+            .bind(
+                &stream
+                    .timestamp_from_time_ago()
+                    .context("Failed to get timestamp")?
+                    .to_string(),
+            )
             .bind(&stream.duration)
+            .bind(&stream.closed_captions_vtt)
+            .bind(&stream.closed_captions_summary)
+            .bind(&stream.closed_captions_language)
             .execute(&mut **transaction)
             .await;
 
@@ -148,13 +182,22 @@ impl DataStore {
 
     pub async fn update_stream(&self, stream: &Stream) -> anyhow::Result<()> {
         sqlx::query(
-            "UPDATE streams SET title = ?, view_count = ?, streamed_date = ?, duration = ?
-           WHERE video_id = ?",
+            r#"
+            UPDATE streams 
+                SET title = ?, 
+                view_count = ?,
+                duration = ?,
+                closed_captions_vtt = ?,
+                closed_captions_summary = ?,
+                closed_captions_language = ?
+            WHERE video_id = ?"#,
         )
         .bind(&stream.title)
         .bind(&stream.view_count)
-        .bind(&stream.streamed_date)
         .bind(&stream.duration)
+        .bind(&stream.closed_captions_vtt)
+        .bind(&stream.closed_captions_summary)
+        .bind(&stream.closed_captions_language)
         .bind(&stream.video_id)
         .execute(&self.0)
         .await
@@ -180,68 +223,6 @@ impl DataStore {
             .context("Failed to list streams")?;
 
         Ok(streams)
-    }
-
-    pub async fn insert_closed_captions(
-        &self,
-        closed_captions: &StreamClosedCaptions,
-    ) -> anyhow::Result<()> {
-        sqlx::query(
-          r#"INSERT INTO stream_closed_captions (video_id, closed_caption_text, closed_caption_summary)
-             VALUES (?, ?, ?)"#,
-      )
-      .bind(&closed_captions.video_id)
-      .bind(&closed_captions.closed_caption_text)
-      .bind(&closed_captions.closed_caption_summary)
-      .execute(&self.0)
-      .await
-      .context("Failed to insert closed captions")?;
-
-        Ok(())
-    }
-
-    pub async fn get_closed_captions(
-        &self,
-        video_id: &str,
-    ) -> anyhow::Result<Option<StreamClosedCaptions>> {
-        let closed_captions = sqlx::query_as::<_, StreamClosedCaptions>(
-            "SELECT * FROM stream_closed_captions WHERE video_id = ?",
-        )
-        .bind(video_id)
-        .fetch_optional(&self.0)
-        .await
-        .context("Failed to get closed captions")?;
-
-        Ok(closed_captions)
-    }
-
-    pub async fn update_closed_captions(
-        &self,
-        closed_captions: &StreamClosedCaptions,
-    ) -> anyhow::Result<()> {
-        sqlx::query(
-            r#"UPDATE stream_closed_captions 
-             SET closed_caption_text = ?, closed_caption_summary = ?
-             WHERE video_id = ?"#,
-        )
-        .bind(&closed_captions.closed_caption_text)
-        .bind(&closed_captions.closed_caption_summary)
-        .bind(&closed_captions.video_id)
-        .execute(&self.0)
-        .await
-        .context("Failed to update closed captions")?;
-
-        Ok(())
-    }
-
-    pub async fn delete_closed_captions(&self, video_id: &str) -> anyhow::Result<()> {
-        sqlx::query("DELETE FROM stream_closed_captions WHERE video_id = ?")
-            .bind(video_id)
-            .execute(&self.0)
-            .await
-            .context("Failed to delete closed captions")?;
-
-        Ok(())
     }
 }
 
@@ -269,7 +250,7 @@ pub enum InsertFailReason {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Stream, StreamClosedCaptions};
+    use crate::Stream;
 
     #[sqlx::test]
     async fn test_datastore_crud_operations() -> anyhow::Result<()> {
@@ -280,8 +261,10 @@ mod tests {
             video_id: "abc123".to_string(),
             title: "Test Stream".to_string(),
             view_count: "1000 views".to_string(),
-            streamed_date: "2023-05-01".to_string(),
+            streamed_date: "4 days ago".to_string(),
             duration: "1:30:00".to_string(),
+            closed_captions_language: Some("en".to_string()),
+            ..Default::default()
         };
         db.insert_stream(&stream).await?;
 
@@ -320,23 +303,29 @@ mod tests {
                 video_id: "unique1".to_string(),
                 title: "Test Stream 1".to_string(),
                 view_count: "1000 views".to_string(),
-                streamed_date: "2023-05-01".to_string(),
+                streamed_date: "1 hour ago".to_string(),
                 duration: "1:30:00".to_string(),
+                closed_captions_language: Some("en".to_string()),
+                ..Default::default()
             },
             Stream {
                 video_id: "unique2".to_string(),
                 title: "Test Stream 2".to_string(),
                 view_count: "2000 views".to_string(),
-                streamed_date: "2023-05-02".to_string(),
+                streamed_date: "2 hours ago".to_string(),
                 duration: "2:00:00".to_string(),
+                closed_captions_language: Some("en".to_string()),
+                ..Default::default()
             },
             // Add a duplicate to test error handling
             Stream {
                 video_id: "unique1".to_string(),
                 title: "Duplicate Stream".to_string(),
                 view_count: "3000 views".to_string(),
-                streamed_date: "2023-05-03".to_string(),
+                streamed_date: "3 hours ago".to_string(),
                 duration: "1:45:00".to_string(),
+                closed_captions_language: Some("en".to_string()),
+                ..Default::default()
             },
         ];
 
@@ -372,8 +361,10 @@ mod tests {
             video_id: "duplicate".to_string(),
             title: "Duplicate Stream".to_string(),
             view_count: "100 views".to_string(),
-            streamed_date: "2023-05-02".to_string(),
+            streamed_date: "1 month ago".to_string(),
             duration: "0:30:00".to_string(),
+            closed_captions_language: Some("en".to_string()),
+            ..Default::default()
         };
         db.insert_stream(&stream).await?;
 
@@ -385,8 +376,10 @@ mod tests {
             video_id: "non_existent".to_string(),
             title: "Non-existent Stream".to_string(),
             view_count: "0 views".to_string(),
-            streamed_date: "2023-05-03".to_string(),
+            streamed_date: "2 months ago".to_string(),
             duration: "0:15:00".to_string(),
+            closed_captions_language: Some("en".to_string()),
+            ..Default::default()
         };
         let result = db.update_stream(&non_existent_stream).await;
         assert!(
@@ -414,8 +407,14 @@ mod tests {
                 video_id: format!("video{}", i),
                 title: format!("Stream {}", i),
                 view_count: format!("{} views", i * 100),
-                streamed_date: format!("2023-05-{:02}", i),
+                streamed_date: if i == 1 {
+                    format!("{} hour ago", i)
+                } else {
+                    format!("{} hours ago", i)
+                },
                 duration: format!("0:{}:00", i * 15),
+                closed_captions_language: Some("en".to_string()),
+                ..Default::default()
             };
             db.insert_stream(&stream).await?;
         }
@@ -455,51 +454,6 @@ mod tests {
             db.get_stream("video2").await?.is_none(),
             "Stream 2 should have been deleted"
         );
-
-        Ok(())
-    }
-
-    #[sqlx::test]
-    async fn test_closed_captions_crud() -> anyhow::Result<()> {
-        let db = DataStore::new("sqlite::memory:").await?;
-
-        // First, insert a stream
-        let stream = Stream {
-            video_id: "test123".to_string(),
-            title: "Test Stream".to_string(),
-            view_count: "1000 views".to_string(),
-            streamed_date: "2023-05-01".to_string(),
-            duration: "1:30:00".to_string(),
-        };
-        db.insert_stream(&stream).await?;
-
-        // Test inserting closed captions
-        let closed_captions = StreamClosedCaptions {
-            video_id: "test123".to_string(),
-            closed_caption_text: "Test transcript".to_string(),
-            closed_caption_summary: Some("Test summary".to_string()),
-        };
-        db.insert_closed_captions(&closed_captions).await?;
-
-        // Test retrieving closed captions
-        let retrieved = db.get_closed_captions("test123").await?.unwrap();
-        assert_eq!(retrieved.closed_caption_text, "Test transcript");
-
-        // Test updating closed captions
-        let updated_captions = StreamClosedCaptions {
-            video_id: "test123".to_string(),
-            closed_caption_text: "Updated transcript".to_string(),
-            closed_caption_summary: Some("Updated summary".to_string()),
-        };
-        db.update_closed_captions(&updated_captions).await?;
-
-        let updated = db.get_closed_captions("test123").await?.unwrap();
-        assert_eq!(updated.closed_caption_text, "Updated transcript");
-
-        // Test deleting closed captions
-        db.delete_closed_captions("test123").await?;
-        let deleted = db.get_closed_captions("test123").await?;
-        assert!(deleted.is_none());
 
         Ok(())
     }
