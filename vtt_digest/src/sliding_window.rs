@@ -1,22 +1,32 @@
-const WINDOW_SIZE: usize = 2000;
-const SLIDE_SIZE: usize = 1000;
-const CONTEXT_SIZE: usize = 500;
+use std::sync::Arc;
 
+/// A struct representing a sliding window over a text, with context management.
+///
+/// `SlidingWindow` is used to process large texts in chunks, maintaining a context
+/// of previous processing results. It's particularly useful for summarization tasks
+/// where context from previous summaries may be relevant.
+///
+/// The behavior of `SlidingWindow` is governed by three constants:
+/// * `WINDOW_SIZE`: The size of the sliding window.
+/// * `SLIDE_SIZE`: The amount by which the window moves in each slide.
 #[derive(Debug)]
 pub struct SlidingWindow {
     pub text: String,
     pub start: usize,
     pub end: usize,
-    pub context: String,
+    pub context: Option<Arc<String>>,
 }
 
 impl SlidingWindow {
+    const WINDOW_SIZE: usize = 2000;
+    const SLIDE_SIZE: usize = 1000;
+
     pub fn new(text: &str) -> Self {
         SlidingWindow {
             text: text.to_string(),
             start: 0,
-            end: WINDOW_SIZE.min(text.len()),
-            context: String::new(),
+            end: Self::WINDOW_SIZE.min(text.len()),
+            context: None,
         }
     }
 
@@ -24,8 +34,8 @@ impl SlidingWindow {
         if self.end >= self.text.len() {
             return false;
         }
-        self.start += SLIDE_SIZE;
-        self.end = (self.start + WINDOW_SIZE).min(self.text.len());
+        self.start += Self::SLIDE_SIZE;
+        self.end = (self.start + Self::WINDOW_SIZE).min(self.text.len());
         true
     }
 
@@ -34,9 +44,15 @@ impl SlidingWindow {
     }
 
     pub fn update_context(&mut self, new_summary: &str) {
-        self.context = format!("{}\n{}", self.context, new_summary);
-        if self.context.len() > CONTEXT_SIZE {
-            self.context = self.context[self.context.len() - CONTEXT_SIZE..].to_string();
-        }
+        let new_context = match &self.context {
+            Some(current_context) => format!("{}\n{}", current_context, new_summary),
+            None => new_summary.to_string(),
+        };
+
+        self.context = Some(Arc::new(new_context));
+    }
+
+    pub fn get_context(&self) -> Option<Arc<String>> {
+        self.context.clone()
     }
 }
