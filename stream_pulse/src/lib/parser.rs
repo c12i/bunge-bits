@@ -9,11 +9,11 @@
 //! - `parse_streams`: A function to parse multiple streams from YouTube JSON data.
 //! - `extract_json_from_script`: A function to extract the `ytInitialData` JSON object from a YouTube page's HTML.
 
-use bunge_bits_datastore::Stream;
 use serde::Deserialize;
 use serde_json::Value;
+use stream_datastore::Stream;
 
-use crate::{error::Error, yt_types::VideoRenderer};
+use crate::{error::Error, types::VideoRenderer};
 
 /// Parses multiple streams from the provided JSON data.
 ///

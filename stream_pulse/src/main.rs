@@ -41,8 +41,8 @@
 //! Different services may be responsible for various stages of the workflow.
 
 use anyhow::Result;
+use stream_pulse::{extract_json_from_script, parse_streams};
 use tokio_cron_scheduler::{JobBuilder, JobScheduler};
-use ytparse::{extract_json_from_script, parse_streams};
 
 lazy_static::lazy_static! {
     static ref CLIENT: Result<reqwest::Client, reqwest::Error> = {
