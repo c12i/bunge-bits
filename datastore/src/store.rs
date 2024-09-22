@@ -217,10 +217,27 @@ impl DataStore {
     }
 
     pub async fn list_streams(&self) -> anyhow::Result<Vec<Stream>> {
-        let streams = sqlx::query_as::<_, Stream>("SELECT * FROM streams")
-            .fetch_all(&self.0)
-            .await
-            .context("Failed to list streams")?;
+        let streams =
+            sqlx::query_as::<_, Stream>("SELECT * FROM streams ORDER BY stream_timestamp DESC")
+                .fetch_all(&self.0)
+                .await
+                .context("Failed to list streams")?;
+
+        Ok(streams)
+    }
+
+    pub async fn list_unprocessed_streams(&self) -> anyhow::Result<Vec<Stream>> {
+        let streams = sqlx::query_as::<_, Stream>(
+            r#"
+            SELECT * FROM streams 
+            WHERE closed_captions_vtt IS NULL 
+            AND closed_captions_summary IS NULL 
+            AND closed_captions_language IS NULL 
+            ORDER BY stream_timestamp DESC"#,
+        )
+        .fetch_all(&self.0)
+        .await
+        .context("Failed to list streams")?;
 
         Ok(streams)
     }
