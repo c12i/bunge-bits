@@ -74,19 +74,18 @@ pub async fn summarize_with_sliding_window<FnSummary, FnCombine>(
     combine_summaries: FnCombine,
 ) -> Result<String, Error>
 where
-    FnSummary:
-        Fn(String, Arc<String>) -> Pin<Box<dyn Future<Output = Result<String, Error>> + Send>>,
+    FnSummary: Fn(
+        String,
+        Option<Arc<String>>,
+    ) -> Pin<Box<dyn Future<Output = Result<String, Error>> + Send>>,
     FnCombine: Fn(Vec<String>) -> Pin<Box<dyn Future<Output = Result<String, Error>> + Send>>,
 {
     let mut window = SlidingWindow::new(&vtt);
     let mut summaries = Vec::new();
 
     loop {
-        let summary = summarize_chunk(
-            window.current_window().to_owned(),
-            window.get_context().unwrap_or_default(),
-        )
-        .await?;
+        let summary =
+            summarize_chunk(window.current_window().to_owned(), window.get_context()).await?;
 
         window.update_context(&summary);
         summaries.push(summary);
@@ -132,7 +131,7 @@ mod tests {
                 Box::pin(async move {
                     Ok(format!(
                         "Summary (prev: {}): {}",
-                        context.len(),
+                        context.unwrap_or_default().len(),
                         &chunk.lines().next().unwrap_or("")
                     ))
                 })
