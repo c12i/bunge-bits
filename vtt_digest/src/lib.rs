@@ -16,7 +16,8 @@ use std::{future::Future, pin::Pin, sync::Arc};
 ///   It takes two parameters:
 ///   - A `String` representing the current window of text to summarize.
 ///   - An `Arc<String>` containing the context from previous summaries.
-///   It returns a `Future` that resolves to a `Result<String, Error>`.
+///
+/// It returns a `Future` that resolves to a `Result<String, Error>`.
 /// * `combine_summaries` - A function that combines individual summaries into a final summary.
 ///   It takes a `Vec<String>` of individual summaries and returns a `Future` that resolves
 ///   to a `Result<String, Error>`.

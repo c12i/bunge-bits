@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use chrono::{DateTime, Duration, Utc};
 
 #[derive(Debug, Default, sqlx::FromRow)]
@@ -83,6 +85,35 @@ impl Stream {
             Some(now - duration)
         } else {
             None
+        }
+    }
+
+    /// Attempts to determine the StreamCategory from a given title.
+    ///
+    /// This function searches for specific keywords in the title to identify
+    /// the appropriate StreamCategory.
+    pub fn category(&self) -> Option<StreamCategory> {
+        if self.title.to_lowercase().contains("national assembly") {
+            return Some(StreamCategory::NationalAssembly);
+        }
+        if self.title.to_lowercase().contains("senate") {
+            return Some(StreamCategory::Senate);
+        }
+        None
+    }
+}
+
+#[derive(Debug)]
+pub enum StreamCategory {
+    NationalAssembly,
+    Senate,
+}
+
+impl Display for StreamCategory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StreamCategory::NationalAssembly => write!(f, "National Assembly"),
+            StreamCategory::Senate => write!(f, "Senate"),
         }
     }
 }
