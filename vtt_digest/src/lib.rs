@@ -69,7 +69,7 @@ use std::{future::Future, pin::Pin, sync::Arc};
 /// The window size, slide size, and context size are determined by constants defined in the
 /// `SlidingWindow` implementation.
 pub async fn summarize_with_sliding_window<FnSummary, FnCombine>(
-    vtt: String,
+    vtt: &str,
     summarize_chunk: FnSummary,
     combine_summaries: FnCombine,
 ) -> Result<String, Error>
@@ -80,7 +80,7 @@ where
     ) -> Pin<Box<dyn Future<Output = Result<String, Error>> + Send>>,
     FnCombine: Fn(Vec<String>) -> Pin<Box<dyn Future<Output = Result<String, Error>> + Send>>,
 {
-    let mut window = SlidingWindow::new(&vtt);
+    let mut window = SlidingWindow::new(vtt);
     let mut summaries = Vec::new();
 
     loop {
@@ -108,7 +108,7 @@ mod tests {
     #[tokio::test]
     async fn test_basic_summarization() -> Result<()> {
         let result = summarize_with_sliding_window(
-            TEST_VTT.to_string(),
+            TEST_VTT,
             |chunk, _context| {
                 Box::pin(
                     async move { Ok(format!("Summary: {}", &chunk.lines().next().unwrap_or(""))) },
@@ -126,7 +126,7 @@ mod tests {
     #[tokio::test]
     async fn test_context_awareness() -> Result<()> {
         let result = summarize_with_sliding_window(
-            TEST_VTT.to_string(),
+            TEST_VTT,
             |chunk, context| {
                 Box::pin(async move {
                     Ok(format!(
