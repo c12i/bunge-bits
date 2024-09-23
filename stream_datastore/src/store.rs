@@ -21,11 +21,10 @@ impl DataStore {
                 streamed_date TEXT NOT NULL,
                 stream_timestamp DATETIME NOT NULL,
                 duration TEXT NOT NULL,
-                closed_captions_vtt TEXT,
                 closed_captions_summary TEXT,
-                closed_captions_language TEXT,
             UNIQUE(video_id)
-        )"#,
+            )
+            "#,
         )
         .execute(&pool)
         .await
@@ -44,11 +43,10 @@ impl DataStore {
                 streamed_date,
                 stream_timestamp,
                 duration,
-                closed_captions_vtt,
-                closed_captions_summary,
-                closed_captions_language
+                closed_captions_summary
             )
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+           VALUES (?, ?, ?, ?, ?, ?, ?)
+           "#,
         )
         .bind(&stream.video_id)
         .bind(&stream.title)
@@ -61,9 +59,7 @@ impl DataStore {
                 .to_string(),
         )
         .bind(&stream.duration)
-        .bind(&stream.closed_captions_vtt)
         .bind(&stream.closed_captions_summary)
-        .bind(&stream.closed_captions_language)
         .execute(&self.0)
         .await;
 
@@ -124,11 +120,10 @@ impl DataStore {
                     streamed_date,
                     stream_timestamp,
                     duration,
-                    closed_captions_vtt,
-                    closed_captions_summary,
-                    closed_captions_language
+                    closed_captions_summary
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                "#,
             )
             .bind(&stream.video_id)
             .bind(&stream.title)
@@ -141,9 +136,7 @@ impl DataStore {
                     .to_string(),
             )
             .bind(&stream.duration)
-            .bind(&stream.closed_captions_vtt)
             .bind(&stream.closed_captions_summary)
-            .bind(&stream.closed_captions_language)
             .execute(&mut **transaction)
             .await;
 
@@ -187,17 +180,14 @@ impl DataStore {
                 SET title = ?, 
                 view_count = ?,
                 duration = ?,
-                closed_captions_vtt = ?,
-                closed_captions_summary = ?,
-                closed_captions_language = ?
-            WHERE video_id = ?"#,
+                closed_captions_summary = ?
+            WHERE video_id = ?
+            "#,
         )
         .bind(&stream.title)
         .bind(&stream.view_count)
         .bind(&stream.duration)
-        .bind(&stream.closed_captions_vtt)
         .bind(&stream.closed_captions_summary)
-        .bind(&stream.closed_captions_language)
         .bind(&stream.video_id)
         .execute(&self.0)
         .await
@@ -222,22 +212,6 @@ impl DataStore {
                 .fetch_all(&self.0)
                 .await
                 .context("Failed to list streams")?;
-
-        Ok(streams)
-    }
-
-    pub async fn list_unprocessed_streams(&self) -> anyhow::Result<Vec<Stream>> {
-        let streams = sqlx::query_as::<_, Stream>(
-            r#"
-            SELECT * FROM streams 
-            WHERE closed_captions_vtt IS NULL 
-            AND closed_captions_summary IS NULL 
-            AND closed_captions_language IS NULL 
-            ORDER BY stream_timestamp DESC"#,
-        )
-        .fetch_all(&self.0)
-        .await
-        .context("Failed to list streams")?;
 
         Ok(streams)
     }
@@ -280,8 +254,7 @@ mod tests {
             view_count: "1000 views".to_string(),
             streamed_date: "4 days ago".to_string(),
             duration: "1:30:00".to_string(),
-            closed_captions_language: Some("en".to_string()),
-            ..Default::default()
+            closed_captions_summary: "Test summary".to_string(),
         };
         db.insert_stream(&stream).await?;
 
@@ -322,8 +295,7 @@ mod tests {
                 view_count: "1000 views".to_string(),
                 streamed_date: "1 hour ago".to_string(),
                 duration: "1:30:00".to_string(),
-                closed_captions_language: Some("en".to_string()),
-                ..Default::default()
+                closed_captions_summary: "Test summary".to_string(),
             },
             Stream {
                 video_id: "unique2".to_string(),
@@ -331,8 +303,7 @@ mod tests {
                 view_count: "2000 views".to_string(),
                 streamed_date: "2 hours ago".to_string(),
                 duration: "2:00:00".to_string(),
-                closed_captions_language: Some("en".to_string()),
-                ..Default::default()
+                closed_captions_summary: "Test summary".to_string(),
             },
             // Add a duplicate to test error handling
             Stream {
@@ -341,8 +312,7 @@ mod tests {
                 view_count: "3000 views".to_string(),
                 streamed_date: "3 hours ago".to_string(),
                 duration: "1:45:00".to_string(),
-                closed_captions_language: Some("en".to_string()),
-                ..Default::default()
+                closed_captions_summary: "Test summary".to_string(),
             },
         ];
 
@@ -380,7 +350,6 @@ mod tests {
             view_count: "100 views".to_string(),
             streamed_date: "1 month ago".to_string(),
             duration: "0:30:00".to_string(),
-            closed_captions_language: Some("en".to_string()),
             ..Default::default()
         };
         db.insert_stream(&stream).await?;
@@ -395,7 +364,6 @@ mod tests {
             view_count: "0 views".to_string(),
             streamed_date: "2 months ago".to_string(),
             duration: "0:15:00".to_string(),
-            closed_captions_language: Some("en".to_string()),
             ..Default::default()
         };
         let result = db.update_stream(&non_existent_stream).await;
@@ -430,7 +398,6 @@ mod tests {
                     format!("{} hours ago", i)
                 },
                 duration: format!("0:{}:00", i * 15),
-                closed_captions_language: Some("en".to_string()),
                 ..Default::default()
             };
             db.insert_stream(&stream).await?;

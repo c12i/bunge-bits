@@ -34,7 +34,7 @@ pub async fn fetch_and_process_streams() -> Result<()> {
 
     let response = client.get(YOUTUBE_STREAM_URL).send().await?.text().await?;
     let autosub_path = PathBuf::from("var")
-        .join("lib")
+        .join("tmp")
         .join("bunge-bits")
         .join("autosub");
 
@@ -59,6 +59,8 @@ pub async fn fetch_and_process_streams() -> Result<()> {
                     &vtt_output_path,
                 )?;
 
+                // XXX: Assumes that the stream getting processed contains English
+                //      closed captions
                 let vtt_file_path = PathBuf::from(format!("{:?}.en.vtt", vtt_output_path));
                 let vtt_string = ytdlp.read_vtt_file(&vtt_file_path)?;
 
@@ -69,8 +71,7 @@ pub async fn fetch_and_process_streams() -> Result<()> {
                 )
                 .await?;
 
-                stream.closed_captions_vtt = Some(vtt_string);
-                stream.closed_captions_summary = Some(summary);
+                stream.closed_captions_summary = summary;
 
                 db.insert_stream(stream).await?;
             }

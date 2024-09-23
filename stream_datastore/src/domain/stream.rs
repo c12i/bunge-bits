@@ -7,9 +7,7 @@ pub struct Stream {
     pub view_count: String,
     pub streamed_date: String,
     pub duration: String,
-    pub closed_captions_vtt: Option<String>,
-    pub closed_captions_summary: Option<String>,
-    pub closed_captions_language: Option<String>,
+    pub closed_captions_summary: String,
 }
 
 impl Stream {
@@ -100,9 +98,7 @@ mod tests {
             view_count: "1000".to_string(),
             streamed_date: streamed_date.to_string(),
             duration: "1:00:00".to_string(),
-            closed_captions_language: Some("en".to_string()),
-            closed_captions_summary: None,
-            closed_captions_vtt: None,
+            ..Default::default()
         }
     }
 
