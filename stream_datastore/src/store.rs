@@ -53,7 +53,7 @@ impl DataStore {
         .bind(&stream.view_count)
         .bind(&stream.streamed_date)
         .bind(
-            &stream
+            stream
                 .timestamp_from_time_ago()
                 .context("Failed to get timestamp")?
                 .to_string(),
@@ -130,7 +130,7 @@ impl DataStore {
             .bind(&stream.view_count)
             .bind(&stream.streamed_date)
             .bind(
-                &stream
+                stream
                     .timestamp_from_time_ago()
                     .context("Failed to get timestamp")?
                     .to_string(),
