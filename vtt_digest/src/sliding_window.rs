@@ -25,17 +25,17 @@ impl SlidingWindow {
         SlidingWindow {
             text: text.to_string(),
             start: 0,
-            end: Self::WINDOW_SIZE.min(text.len()),
+            end: Self::WINDOW_SIZE.min(text.len() - 1),
             context: None,
         }
     }
 
     pub fn slide(&mut self) -> bool {
-        if self.end >= self.text.len() {
+        if self.end >= (self.text.len() - 1) {
             return false;
         }
         self.start += Self::SLIDE_SIZE;
-        self.end = (self.start + Self::WINDOW_SIZE).min(self.text.len());
+        self.end = (self.start + Self::WINDOW_SIZE).min(self.text.len() - 1);
         true
     }
 
