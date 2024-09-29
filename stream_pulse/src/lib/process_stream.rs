@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use crate::{extract_json_from_script, parse_streams};
-use anyhow::Result;
+use anyhow::anyhow;
 use futures::executor::block_on;
 use stream_datastore::DataStore;
 use vtt_digest::summarize_with_sliding_window;
@@ -16,7 +16,7 @@ lazy_static::lazy_static! {
             .build()
     };
 
-    static ref DB: Result<DataStore> = {
+    static ref DB: Result<DataStore, anyhow::Error> = {
         block_on(DataStore::new("/var/lib/bunge-bits/store.db"))
     };
 
@@ -27,9 +27,11 @@ lazy_static::lazy_static! {
 
 const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChannel/streams";
 
-pub async fn fetch_and_process_streams() -> Result<()> {
+pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
     let client = CLIENT.as_ref()?;
-    let db = DB.as_ref().unwrap();
+    let db = DB
+        .as_ref()
+        .map_err(|_| anyhow!("Failed to connect to database"))?;
     let ytdlp = YTDLP.as_ref()?;
 
     let response = client.get(YOUTUBE_STREAM_URL).send().await?.text().await?;
