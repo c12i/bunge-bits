@@ -36,19 +36,11 @@ pub trait VideoProcessor {
 impl VideoProcessor for YtDlp {
     fn extract_audio<P: AsRef<Path>>(
         &self,
-        video_url: &str,
-        output_path: P,
+        _video_url: &str,
+        _output_path: P,
     ) -> Result<(), YtDlpError> {
-        self.run_command(&[
-            "-x",
-            "--audio-format",
-            "mp3",
-            "-o",
-            output_path.as_ref().to_str().ok_or_else(|| {
-                YtDlpError::InvalidOutputPath(output_path.as_ref().display().to_string())
-            })?,
-            video_url,
-        ])
+        // TODO: Update to make use of ffmpeg
+        todo!();
     }
 
     fn convert_video<P: AsRef<Path>>(

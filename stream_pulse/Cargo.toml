@@ -16,6 +16,7 @@ path = "./src/lib/lib.rs"
 stream_datastore = { version = "0.1.0", path = "../stream_datastore" }
 ytdlp_bindings = { version = "0.1.0", path = "../ytdlp_bindings" }
 vtt_digest = { version = "0.1.0", path = "../vtt_digest" }
+openai_dive = "0.6"
 reqwest = { version = "0.12", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0"

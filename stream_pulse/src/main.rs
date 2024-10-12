@@ -31,7 +31,7 @@ use tokio_cron_scheduler::{JobBuilder, JobScheduler};
 const CRON_EXPR: &str = "0 0 */12 * * *";
 // const CRON_EXPR: &str = "*/15 * * * * *";
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     let mut scheduler = JobScheduler::new().await?;
 

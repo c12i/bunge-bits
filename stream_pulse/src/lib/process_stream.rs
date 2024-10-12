@@ -23,6 +23,10 @@ lazy_static::lazy_static! {
     static ref YTDLP: Result<YtDlp, YtDlpError> = {
         YtDlp::new()
     };
+
+    static ref OPENAI: openai_dive::v1::api::Client = {
+        openai_dive::v1::api::Client::new_from_env()
+    };
 }
 
 const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChannel/streams";
@@ -44,6 +48,14 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
         Ok(json) => {
             let mut streams = parse_streams(&json)?;
 
+            // TODO: Iterate over each newly archived stream.
+            //       Utilize par_iter to perform video download and extraction
+            //
+            // TODO: Iterate through each newly created directory with chunked
+            //       audio files and call LLM service to transcribe and summarize
+            //       Can this be achived in parallel as well?
+            //       Are there any rate limiting constraints with OpenAI's API?
+
             for stream in streams.iter_mut() {
                 // Process the new stream
                 println!("Processing new stream: {}", stream.video_id);
@@ -53,6 +65,17 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
                 if existing_stream.is_some() {
                     continue;
                 }
+
+                // TODO: Rather than fetching the stream's closed captions
+                //       We use yt-dlp to download the stream's audio
+                //       Then use ffmpeeg via the ytdlp bindings to split the audio
+                //       into chunks.
+                //       Once this is done; process each audio chunk and send to the
+                //       LLM service for transcription & summarization still making use
+                //       of the sliding window technique
+                //       In terms of performance, this could be expensive indeed
+                //       Perhaps we could parallelize the download and audio extraction
+                //       process to improve runtime
 
                 // get video closed captions via yt-dlp
                 let vtt_output_path = autosub_path.join(&stream.video_id);
@@ -97,5 +120,18 @@ async fn summarize_chunk(chunk: String, context: Option<Arc<String>>) -> anyhow:
 async fn combine_summaries(summaries: Vec<String>) -> anyhow::Result<String> {
     // TODO: Make an API call to OpenAI to coherently summarize the contents of
     //       previous chunked summaries into a single one
+    let summary_str = summaries.join("\n");
     todo!()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_openai() {
+        let client = &OPENAI;
+        let models = client.models().list().await.unwrap();
+        println!("{:?}", models);
+    }
 }
