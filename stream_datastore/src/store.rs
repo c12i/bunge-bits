@@ -72,6 +72,11 @@ impl DataStore {
         }
     }
 
+    pub async fn stream_exists(&self, video_id: &str) -> anyhow::Result<bool> {
+        let existing_stream = self.get_stream(video_id).await?;
+        Ok(existing_stream.is_some())
+    }
+
     pub async fn bulk_insert_streams(
         &self,
         streams: &[Stream],

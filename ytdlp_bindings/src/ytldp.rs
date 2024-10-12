@@ -168,7 +168,7 @@ impl YtDlp {
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```no_run
     /// use ytdlp_bindings::YtDlp;
     /// fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///     let ytdlp = YtDlp::new()?;
@@ -177,7 +177,7 @@ impl YtDlp {
     ///         &["--format", "bestaudio/best", "--extract-audio", "--audio-format", "mp3", "--output", "audio.%(ext)s"]
     ///     )?;
     ///     Ok(())
-    /// }
+    ///  }
     /// ```
     pub fn download_with_options(&self, url: &str, options: &[&str]) -> Result<(), YtDlpError> {
         let mut args = options.to_vec();

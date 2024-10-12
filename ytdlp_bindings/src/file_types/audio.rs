@@ -23,7 +23,7 @@ pub trait AudioProcessor {
     fn split_audio_to_chunks(
         &self,
         file_input_path: impl AsRef<Path>,
-        segment_time: u8,
+        segment_time: u16,
         out_template: impl AsRef<Path>,
     ) -> Result<(), YtDlpError>;
 }
@@ -32,7 +32,7 @@ impl AudioProcessor for YtDlp {
     fn split_audio_to_chunks(
         &self,
         file_input_path: impl AsRef<Path>,
-        segment_time: u8,
+        segment_time: u16,
         output_template: impl AsRef<Path>,
     ) -> Result<(), YtDlpError> {
         let input_str = file_input_path.as_ref().to_str().ok_or_else(|| {
