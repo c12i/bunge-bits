@@ -4,7 +4,8 @@
 //! which is used for downloading videos and subtitles from YouTube and other platforms.
 //!
 //! The main struct `YtDlp` offers methods to download subtitles and process VTT files.
-//! It also implements the `VttProcessor` trait for handling VTT subtitle files and
+//!
+//! On enabling the `VttProcessor` trait for handling VTT subtitle files and
 //! the `VideoProcessor` trait for handling video and audio files.
 //!
 //! This crate was developed to initially serve a single purpose of downloading closed
@@ -24,8 +25,8 @@
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let ytdlp = YtDlp::new()?;
-//! let output_path = Path::new("output.vtt");
-//! ytdlp.download_auto_sub("https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_path)?;
+//! let output-path = Path::new("output.vtt");
+//! ytdlp.download_auto_sub("https://www.youtube.com/watch?v=dQw4w9WgXcQ", output-path)?;
 //! # Ok(())
 //! # }
 //! ```
@@ -35,6 +36,10 @@ mod file_types;
 mod ytldp;
 
 pub use error::YtDlpError;
-pub use file_types::video::{VideoMetadata, VideoProcessor};
+#[cfg(feature = "audio-processing")]
+pub use file_types::audio::AudioProcessor;
+#[cfg(feature = "video-processing")]
+pub use file_types::video::VideoProcessor;
+#[cfg(feature = "vtt-processing")]
 pub use file_types::vtt::{parse_vtt_content, SubtitleEntry, VttProcessor};
 pub use ytldp::YtDlp;

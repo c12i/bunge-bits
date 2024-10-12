@@ -1,114 +1,81 @@
 //! # video
 //!
-//! Note that this module is still a WIP
+//! Enrich `YtDlp` by adding video processing capabilities
 
 use crate::{error::YtDlpError, YtDlp};
 use std::path::Path;
 
-/// Represents metadata for a video file.
-#[derive(Debug, Clone)]
-pub struct VideoMetadata {
-    pub title: String,
-    pub duration: f64,
-    pub format: String,
-    pub resolution: Option<(u32, u32)>,
-    pub fps: Option<f64>,
-}
-
 /// A trait for processing video files.
+/// Requires `ffmpeg` v7* available in the evironment
 pub trait VideoProcessor {
-    /// Extracts audio from a video file.
-    fn extract_audio<P: AsRef<Path>>(
+    /// Converts a video to a different format.
+    ///
+    /// # Arguments
+    /// * `input_path` - Path to video
+    /// * `output_path` - Path to converted video
+    ///
+    /// # Errors
+    ///
+    /// Returns `YtDlpError` if the file cannot be read.
+    fn convert_video<P: AsRef<Path>>(
         &self,
-        vide_url: &str,
+        input_path: P,
         output_path: P,
     ) -> Result<(), YtDlpError>;
 
-    /// Converts a video to a different format.
-    fn convert_video<P: AsRef<Path>>(
+    /// Extracts frames from a video
+    ///
+    /// # Arguments
+    /// * `video_input_path` - Path to video
+    /// * `fps`: Set frames per second options e.g "1", "1/10" or "fps=1,scale=320:24"
+    /// * `out_template` - Path/ template string of the frame PNG image files
+    /// * `extra_args` - Optional extra args to pass to the underlying ffmpeg command
+    ///
+    /// # Errors
+    ///
+    /// Returns `YtDlpError` if the file cannot be read.
+    fn extract_frames<P: AsRef<Path>>(
         &self,
-        video_url: &str,
-        output_path: P,
-        format: &str,
+        input_path: P,
+        fps: &str,
+        output_template: P,
+        extra_args: Option<&[&str]>,
     ) -> Result<(), YtDlpError>;
 }
 
 impl VideoProcessor for YtDlp {
-    fn extract_audio<P: AsRef<Path>>(
-        &self,
-        _video_url: &str,
-        _output_path: P,
-    ) -> Result<(), YtDlpError> {
-        // TODO: Update to make use of ffmpeg
-        todo!();
-    }
-
     fn convert_video<P: AsRef<Path>>(
         &self,
-        video_url: &str,
+        input_path: P,
         output_path: P,
-        format: &str,
     ) -> Result<(), YtDlpError> {
-        self.run_command(&[
-            "--recode-video",
-            format,
-            "-o",
-            output_path.as_ref().to_str().ok_or_else(|| {
-                YtDlpError::InvalidOutputPath(output_path.as_ref().display().to_string())
-            })?,
-            video_url,
-        ])
-    }
-}
+        let input_str = input_path.as_ref().to_str().ok_or_else(|| {
+            YtDlpError::InvalidOutputPath(input_path.as_ref().display().to_string())
+        })?;
+        let output_str = output_path.as_ref().to_str().ok_or_else(|| {
+            YtDlpError::InvalidOutputPath(output_path.as_ref().display().to_string())
+        })?;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::path::PathBuf;
-
-    struct MockYtDlp {
-        #[allow(unused)]
-        pub binary_path: PathBuf,
+        self.run_ffmpeg(&["i", input_str, output_str])
     }
 
-    impl MockYtDlp {
-        fn new() -> Self {
-            MockYtDlp {
-                binary_path: PathBuf::from("mock_yt-dlp"),
-            }
-        }
-    }
+    fn extract_frames<P: AsRef<Path>>(
+        &self,
+        input_path: P,
+        fps: &str,
+        output_template: P,
+        extra_args: Option<&[&str]>,
+    ) -> Result<(), YtDlpError> {
+        let input_str = input_path.as_ref().to_str().ok_or_else(|| {
+            YtDlpError::InvalidOutputPath(input_path.as_ref().display().to_string())
+        })?;
+        let output_str = output_template.as_ref().to_str().ok_or_else(|| {
+            YtDlpError::InvalidOutputPath(output_template.as_ref().display().to_string())
+        })?;
+        let fps = format!("fps={}", fps);
+        let extra_args = extra_args.map(|args| args.join(" ")).unwrap_or_default();
 
-    impl VideoProcessor for MockYtDlp {
-        fn extract_audio<P: AsRef<Path>>(
-            &self,
-            _video_url: &str,
-            _output_path: P,
-        ) -> Result<(), YtDlpError> {
-            Ok(())
-        }
-
-        fn convert_video<P: AsRef<Path>>(
-            &self,
-            _video_url: &str,
-            _output_path: P,
-            _format: &str,
-        ) -> Result<(), YtDlpError> {
-            Ok(())
-        }
-    }
-
-    #[test]
-    fn test_extract_audio() {
-        let mock_ytdlp = MockYtDlp::new();
-        assert!(mock_ytdlp.extract_audio("dummy.mp4", "audio.mp3").is_ok());
-    }
-
-    #[test]
-    fn test_convert_video() {
-        let mock_ytdlp = MockYtDlp::new();
-        assert!(mock_ytdlp
-            .convert_video("input.mp4", "output.webm", "webm")
-            .is_ok());
+        // ffmpeg -i input_video.mp4 -vf fps=1/10 output_%04d.png
+        self.run_ffmpeg(&["-i", input_str, "-vf", &fps, &extra_args, output_str])
     }
 }

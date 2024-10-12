@@ -1,3 +1,7 @@
+//! # vtt
+//!
+//! Enrich `YtDlp` by adding VTT processing capabilities
+
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,

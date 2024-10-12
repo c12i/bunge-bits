@@ -25,7 +25,7 @@ impl YtDlp {
         let binary_path = env::var("YTDLP_BINARY")
             .map(PathBuf::from)
             .or_else(|_| which::which("yt-dlp"))
-            .map_err(|_| YtDlpError::BinaryNotFound)?;
+            .map_err(|_| YtDlpError::BinaryNotFound("yt-dlp".to_string()))?;
 
         Ok(YtDlp { binary_path })
     }
@@ -75,7 +75,39 @@ impl YtDlp {
             YtDlpError::InvalidOutputPath(output_template.as_ref().display().to_string())
         })?;
 
-        self.run_command(&["--output", output_str, url])
+        self.run_yt_dlp(&["--output", output_str, url])
+    }
+
+    /// Downloads a single audio from the given URL in mp3 format.
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - The URL of the video whose audio to download.
+    /// * `output_template` - A template string for the output filename.
+    ///   See yt-dlp documentation for available template options.
+    ///
+    /// # Errors
+    ///
+    /// Returns `YtDlpError` if the download fails or if the output template is invalid.
+    pub fn download_audio<P: AsRef<Path>>(
+        &self,
+        url: &str,
+        output_template: P,
+    ) -> Result<(), YtDlpError> {
+        let output_str = output_template.as_ref().to_str().ok_or_else(|| {
+            YtDlpError::InvalidOutputPath(output_template.as_ref().display().to_string())
+        })?;
+
+        self.run_yt_dlp(&[
+            "-f",
+            "bestaudio",
+            "-x",
+            "--audio-format",
+            "mp3",
+            "--output",
+            output_str,
+            url,
+        ])
     }
 
     /// Downloads all videos from a playlist URL.
@@ -112,10 +144,10 @@ impl YtDlp {
             YtDlpError::InvalidOutputPath(output_template.as_ref().display().to_string())
         })?;
 
-        self.run_command(&["--output", output_str, "--yes-playlist", playlist_url])
+        self.run_yt_dlp(&["--output", output_str, "--yes-playlist", playlist_url])
     }
 
-    /// Downloads a video with custom options.
+    /// Downloads video or audio aud with custom options.
     ///
     /// This method allows you to pass custom yt-dlp options for more advanced use cases.
     ///
@@ -144,15 +176,15 @@ impl YtDlp {
     pub fn download_with_options(&self, url: &str, options: &[&str]) -> Result<(), YtDlpError> {
         let mut args = options.to_vec();
         args.push(url);
-        self.run_command(&args)
+        self.run_yt_dlp(&args)
     }
 
-    /// Downloads auto-generated subtitles for a given URL.
+    /// Downloads auto-generated subtitles for a given URL in VTT format.
     ///
     /// # Arguments
     ///
     /// * `url` - The URL of the video to download subtitles for.
-    /// * `output_path` - The path where the subtitle file will be saved.
+    /// * `output_path` - A template string of the output file
     ///
     /// # Errors
     ///
@@ -160,13 +192,13 @@ impl YtDlp {
     pub fn download_auto_sub<P: AsRef<Path>>(
         &self,
         url: &str,
-        output_path: P,
+        output_template: P,
     ) -> Result<(), YtDlpError> {
-        let output_str = output_path.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidOutputPath(output_path.as_ref().display().to_string())
+        let output_str = output_template.as_ref().to_str().ok_or_else(|| {
+            YtDlpError::InvalidOutputPath(output_template.as_ref().display().to_string())
         })?;
 
-        self.run_command(&[
+        self.run_yt_dlp(&[
             "--write-auto-sub",
             "--skip-download",
             "--output",
@@ -194,7 +226,7 @@ impl YtDlp {
             YtDlpError::InvalidOutputPath(output_path.as_ref().display().to_string())
         })?;
 
-        self.run_command(&[
+        self.run_yt_dlp(&[
             "--write-sub",
             "--skip-download",
             "--output",
@@ -203,13 +235,35 @@ impl YtDlp {
         ])
     }
 
-    pub(crate) fn run_command(&self, args: &[&str]) -> Result<(), YtDlpError> {
+    pub(crate) fn run_yt_dlp(&self, args: &[&str]) -> Result<(), YtDlpError> {
         let output = Command::new(&self.binary_path).args(args).output()?;
 
         if output.status.success() {
             Ok(())
         } else {
-            Err(YtDlpError::NonZeroExit(output.status.code().unwrap_or(-1)))
+            Err(YtDlpError::NonZeroExit {
+                command: self.binary_path.to_string_lossy().into(),
+                status: output.status.code().unwrap_or(-1),
+                output: String::from_utf8_lossy(&output.stdout.to_vec()).into(),
+            })
+        }
+    }
+
+    #[cfg(any(feature = "audio-processing", feature = "video-processing"))]
+    pub(crate) fn run_ffmpeg(&self, args: &[&str]) -> Result<(), YtDlpError> {
+        if which::which("ffmpeg").is_err() {
+            return Err(YtDlpError::BinaryNotFound("ffmpeg".to_string()));
+        }
+        let output = Command::new("ffmpeg").args(args).output()?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(YtDlpError::NonZeroExit {
+                command: "ffmpeg".to_string(),
+                status: output.status.code().unwrap_or(-1),
+                output: String::from_utf8_lossy(&output.stdout.to_vec()).into(),
+            })
         }
     }
 }
@@ -262,7 +316,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "This test is only for debugging purposes"]
     fn debug_download_auto_sub_part() -> Result<(), Box<dyn std::error::Error>> {
         let ytdlp = YtDlp::new()?;
         let temp_dir = env::temp_dir();
