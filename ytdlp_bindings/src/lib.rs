@@ -5,17 +5,13 @@
 //!
 //! The main struct `YtDlp` offers methods to download subtitles and process VTT files.
 //!
-//! On enabling the `VttProcessor` trait for handling VTT subtitle files and
-//! the `VideoProcessor` trait for handling video and audio files.
-//!
-//! This crate was developed to initially serve a single purpose of downloading closed
-//! captions from YouTube videos, hence the limited features. PRs are open to add more
-//! features and add support for video processing.
-//!
 //! # Features
 //!
 //! - `yt-dlp-vendored`: When enabled, the crate will use a vendored version of yt-dlp.
 //!   When disabled, you need to provide the path to the yt-dlp binary.
+//! - `audio-processing`: Adds downloaded audio processing capabilities to YtDlp via vendored ffmpeg (v7*)
+//! - `video-processing`: Adds downloaded video processing capabilities to YtDlp also via vendored ffmpeg (v7*)
+//! - `vtt-processing`: Adds downloaded VTT file processing capabilities to YtDlp
 //!
 //! # Examples
 //!
@@ -23,12 +19,14 @@
 //! use ytdlp_bindings::YtDlp;
 //! use std::path::Path;
 //!
-//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! let ytdlp = YtDlp::new()?;
-//! let output-path = Path::new("output.vtt");
-//! ytdlp.download_auto_sub("https://www.youtube.com/watch?v=dQw4w9WgXcQ", output-path)?;
-//! # Ok(())
-//! # }
+//! fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let ytdlp = YtDlp::new()?;
+//!     let output_path = Path::new("output.vtt");
+//!
+//!     ytdlp.download_auto_sub("https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_path)?;
+//!
+//!     Ok(())
+//! }
 //! ```
 
 mod error;

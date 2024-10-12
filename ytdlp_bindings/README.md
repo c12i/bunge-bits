@@ -8,7 +8,10 @@ Rust bindings for [`yt-dlp`](https://github.com/yt-dlp/yt-dlp), a YouTube video 
 - Download audio from YouTube or other supported platforms
 - Download and process subtitles
 - Vendored yt-dlp binary (optional)
-- Video processing capabilities (Work In Progress)
+- Video/Audio and VTT processing capabilities via the following cargo features which are all enabled by default:
+  - `audio-processing`
+  - `video-processing`
+  - `vtt-processing`
 
 ## Installation
 
@@ -68,7 +71,7 @@ use std::path::Path;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let ytdlp = YtDlp::new()?;
-    
+
     // Download subtitles
     ytdlp.download_auto_sub(
         "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
@@ -85,14 +88,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-## Note on Video Processing
-
-The video processing capabilities (such as metadata extraction and format conversion) are currently a Work In Progress. These features may be incomplete or subject to significant changes in future versions.
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+I am especially open to extending the video/ audio / vtt processing capabilities which at the moment only contain methods that are required by the bunge-bits project project.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.

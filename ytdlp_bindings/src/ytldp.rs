@@ -58,13 +58,16 @@ impl YtDlp {
     ///
     /// # Example
     ///
-    /// ```no_run
-    /// # use ytdlp_bindings::YtDlp;
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// let ytdlp = YtDlp::new()?;
-    /// ytdlp.download_video("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "%(title)s.%(ext)s")?;
-    /// # Ok(())
-    /// # }
+    /// ```rust,no_run
+    /// use ytdlp_bindings::YtDlp;
+    ///
+    /// fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let ytdlp = YtDlp::new()?;
+    ///
+    ///     ytdlp.download_video("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "%(title)s.%(ext)s")?;
+    ///
+    ///     Ok(())
+    /// }
     /// ```
     pub fn download_video<P: AsRef<Path>>(
         &self,
@@ -124,16 +127,19 @@ impl YtDlp {
     ///
     /// # Example
     ///
-    /// ```no_run
-    /// # use ytdlp_bindings::YtDlp;
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// let ytdlp = YtDlp::new()?;
-    /// ytdlp.download_playlist(
-    ///     "https://www.youtube.com/playlist?list=PLv3TTBr1W_9tppikBxAE_G6qjWdBljBHJ",
-    ///     "playlist_videos/%(playlist_index)s-%(title)s.%(ext)s"
-    /// )?;
-    /// # Ok(())
-    /// # }
+    /// ```rust,no_run
+    /// use ytdlp_bindings::YtDlp;
+    ///
+    /// fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let ytdlp = YtDlp::new()?;
+    ///
+    ///     ytdlp.download_playlist(
+    ///         "https://www.youtube.com/playlist?list=PLv3TTBr1W_9tppikBxAE_G6qjWdBljBHJ",
+    ///         "playlist_videos/%(playlist_index)s-%(title)s.%(ext)s"
+    ///     )?;
+    ///
+    ///     Ok(())
+    /// }
     /// ```
     pub fn download_playlist<P: AsRef<Path>>(
         &self,
@@ -162,16 +168,16 @@ impl YtDlp {
     ///
     /// # Example
     ///
-    /// ```no_run
-    /// # use ytdlp_bindings::YtDlp;
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// let ytdlp = YtDlp::new()?;
-    /// ytdlp.download_with_options(
-    ///     "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    ///     &["--format", "bestaudio/best", "--extract-audio", "--audio-format", "mp3", "--output", "audio.%(ext)s"]
-    /// )?;
-    /// # Ok(())
-    /// # }
+    /// ```rust,no_run
+    /// use ytdlp_bindings::YtDlp;
+    /// fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let ytdlp = YtDlp::new()?;
+    ///     ytdlp.download_with_options(
+    ///         "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    ///         &["--format", "bestaudio/best", "--extract-audio", "--audio-format", "mp3", "--output", "audio.%(ext)s"]
+    ///     )?;
+    ///     Ok(())
+    /// }
     /// ```
     pub fn download_with_options(&self, url: &str, options: &[&str]) -> Result<(), YtDlpError> {
         let mut args = options.to_vec();
