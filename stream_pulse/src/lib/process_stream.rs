@@ -4,7 +4,7 @@ use crate::{extract_json_from_script, parse_streams};
 use anyhow::anyhow;
 use futures::executor::block_on;
 use stream_datastore::DataStore;
-use vtt_digest::summarize_with_sliding_window;
+use stream_digest::summarize_with_sliding_window;
 use ytdlp_bindings::{VttProcessor, YtDlp, YtDlpError};
 
 //  Parliament of Kenya Channel Stream URL
