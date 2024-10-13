@@ -1,5 +1,5 @@
 use crate::Stream;
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use sqlx::{Sqlite, SqlitePool, Transaction};
 
 #[derive(Debug, Clone)]
@@ -9,7 +9,7 @@ impl DataStore {
     pub async fn new(database_url: &str) -> anyhow::Result<Self> {
         let pool = SqlitePool::connect(database_url)
             .await
-            .context("Failed to connect to database")?;
+            .map_err(|e| anyhow!("Failed to connect to database: {}", e))?;
 
         // Create the streams table
         sqlx::query(
@@ -21,14 +21,13 @@ impl DataStore {
                 streamed_date TEXT NOT NULL,
                 stream_timestamp DATETIME NOT NULL,
                 duration TEXT NOT NULL,
-                closed_captions_summary TEXT,
-            UNIQUE(video_id)
+                closed_captions_summary TEXT
             )
             "#,
         )
         .execute(&pool)
         .await
-        .context("Failed to create streams table")?;
+        .map_err(|e| anyhow!("Failed to create streams table: {}", e))?;
 
         Ok(DataStore(pool))
     }
