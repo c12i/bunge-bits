@@ -56,7 +56,7 @@ impl VideoProcessor for YtDlp {
             YtDlpError::InvalidOutputPath(output_path.as_ref().display().to_string())
         })?;
 
-        self.run_ffmpeg(&["i", input_str, output_str])
+        self.run_ffmpeg(&["-i", input_str, output_str])
     }
 
     fn extract_frames<P: AsRef<Path>>(

@@ -30,14 +30,14 @@
 //! ```
 
 mod error;
-mod file_types;
+mod processors;
 mod ytldp;
 
 pub use error::YtDlpError;
 #[cfg(feature = "audio-processing")]
-pub use file_types::audio::AudioProcessor;
+pub use processors::audio::AudioProcessor;
 #[cfg(feature = "video-processing")]
-pub use file_types::video::VideoProcessor;
+pub use processors::video::VideoProcessor;
 #[cfg(feature = "vtt-processing")]
-pub use file_types::vtt::{parse_vtt_content, SubtitleEntry, VttProcessor};
+pub use processors::vtt::{parse_vtt_content, SubtitleEntry, VttProcessor};
 pub use ytldp::YtDlp;
