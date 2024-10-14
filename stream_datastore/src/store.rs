@@ -1,13 +1,19 @@
+use std::str::FromStr;
+
 use crate::Stream;
 use anyhow::{anyhow, Context};
-use sqlx::{Sqlite, SqlitePool, Transaction};
+use sqlx::{sqlite::SqliteConnectOptions, Sqlite, SqlitePool, Transaction};
 
 #[derive(Debug, Clone)]
 pub struct DataStore(SqlitePool);
 
 impl DataStore {
     pub async fn new(database_url: &str) -> anyhow::Result<Self> {
-        let pool = SqlitePool::connect(database_url)
+        let options = SqliteConnectOptions::from_str(database_url)
+            .map_err(|e| anyhow!("Connection string is invalid: {}", e))?
+            .create_if_missing(true);
+
+        let pool = SqlitePool::connect_with(options)
             .await
             .map_err(|e| anyhow!("Failed to connect to database: {}", e))?;
 
