@@ -2,16 +2,15 @@
 
 Rust bindings for [`yt-dlp`](https://github.com/yt-dlp/yt-dlp), a YouTube video and audio downloader.
 
-## Features
+# Features
 
-- Download videos and playlists from YouTube and other supported platforms
-- Download audio from YouTube or other supported platforms
-- Download and process subtitles
-- Vendored yt-dlp binary (optional)
-- Video/Audio and VTT processing capabilities via the following cargo features which are all enabled by default:
-  - `audio-processing`
-  - `video-processing`
-  - `vtt-processing`
+The following features are enabled by default:
+
+- `yt-dlp-vendored`: When enabled, the crate will use a vendored version of yt-dlp.
+  When disabled, you need to provide the path to the yt-dlp binary when creating an instance of YtDlp.
+- `audio-processing`: Adds downloaded audio processing capabilities to YtDlp via vendored ffmpeg (v7\*)
+- `video-processing`: Adds downloaded video processing capabilities to YtDlp also via vendored ffmpeg (v7\*)
+- `vtt-processing`: Adds downloaded VTT file processing capabilities to YtDlp
 
 ## Installation
 
@@ -22,7 +21,7 @@ Add this to your `Cargo.toml`:
 ytdlp-bindings = { git="https://gitub.com/c12i/bunge-bits", package = "ytdlp_bindings" }
 ```
 
-By default, this crate uses a vendored `yt-dlp binary`. If you want to use your system's yt-dlp installation, disable the default features:
+By default, this crate uses a vendored `yt-dlp` binary. If you want to use your system's yt-dlp installation, disable the default features:
 
 ```toml
 [dependencies]
