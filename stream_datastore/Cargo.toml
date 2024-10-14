@@ -9,7 +9,8 @@ name = "stream_datastore"
 path = "./src/lib.rs"
 
 [dependencies]
-sqlx = { version = "0.8.2", features = ["runtime-tokio", "sqlite"] }
 anyhow = "1.0"
 chrono = "0.4.38"
+rusqlite = "0.32.1"
 regex = "1.10.6"
+

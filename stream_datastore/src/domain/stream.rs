@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use chrono::{DateTime, Duration, Utc};
 
-#[derive(Debug, Default, sqlx::FromRow)]
+#[derive(Debug, Default)]
 pub struct Stream {
     pub video_id: String,
     pub title: String,
