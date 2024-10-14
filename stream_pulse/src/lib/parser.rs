@@ -38,8 +38,8 @@ pub fn parse_streams(json: &Value) -> Result<Vec<Stream>, Error> {
             {
                 let video_renderer =
                     serde_json::from_value::<VideoRenderer>(Value::Object(video_renderer.clone()))?;
-                // Only process the video if it's not an upcoming event
-                if video_renderer.upcoming_event_data.is_some() {
+                // Only process the video if it's not an upcoming / live event
+                if video_renderer.upcoming_event_data.is_some() || video_renderer.view_count_text.is_none() || video_renderer.published_time_text.is_none() {
                     continue;
                 }
                 let StreamWrapper(stream) = StreamWrapper::try_from(video_renderer)?;
@@ -87,13 +87,17 @@ impl TryFrom<VideoRenderer> for StreamWrapper {
             ))?
             .text;
         let view_count = view_count_text
-            .ok_or(Error::ParseError("No value found for 'viewCountText'"))?
+            .ok_or(Error::ParseError("No value found for 'viewCountText'"))
+            .unwrap_or_default()
             .simple_text
-            .ok_or(Error::ParseError("No valuefound for 'simpleText'"))?;
+            .ok_or(Error::ParseError("No valuefound for 'simpleText'"))
+            .unwrap_or_default();
         let streamed_date = published_time_text
-            .ok_or(Error::ParseError("No value found for 'publishedTimeText'"))?
+            .ok_or(Error::ParseError("No value found for 'publishedTimeText'"))
+            .unwrap_or_default()
             .simple_text
-            .ok_or(Error::ParseError("No value found for 'simpleText'"))?;
+            .ok_or(Error::ParseError("No value found for 'simpleText'"))
+            .unwrap_or_default();
         let duration = length_text
             .ok_or(Error::ParseError("No value found for 'lengthText'"))?
             .simple_text;

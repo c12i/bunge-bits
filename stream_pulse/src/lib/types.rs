@@ -39,7 +39,7 @@ pub struct TextRun {
     pub text: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct SimpleText {
     #[serde(rename = "simpleText")]
     pub simple_text: Option<String>,

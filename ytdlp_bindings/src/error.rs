@@ -2,7 +2,7 @@
 pub enum YtDlpError {
     #[error("Failed to execute yt-dlp: {0}")]
     ExecutionError(#[from] std::io::Error),
-    #[error("{command} exited with status '{status}' {output}")]
+    #[error("{command} exited with status '{status}': {output}")]
     NonZeroExit {
         command: String,
         status: i32,
