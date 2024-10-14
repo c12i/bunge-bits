@@ -50,10 +50,10 @@ impl VideoProcessor for YtDlp {
         output_path: P,
     ) -> Result<(), YtDlpError> {
         let input_str = input_path.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidOutputPath(input_path.as_ref().display().to_string())
+            YtDlpError::InvalidPath(input_path.as_ref().display().to_string())
         })?;
         let output_str = output_path.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidOutputPath(output_path.as_ref().display().to_string())
+            YtDlpError::InvalidPath(output_path.as_ref().display().to_string())
         })?;
 
         self.run_ffmpeg(&["-i", input_str, output_str])
@@ -67,10 +67,10 @@ impl VideoProcessor for YtDlp {
         extra_args: Option<&[&str]>,
     ) -> Result<(), YtDlpError> {
         let input_str = input_path.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidOutputPath(input_path.as_ref().display().to_string())
+            YtDlpError::InvalidPath(input_path.as_ref().display().to_string())
         })?;
         let output_str = output_template.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidOutputPath(output_template.as_ref().display().to_string())
+            YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
         })?;
         let fps = format!("fps={}", fps);
         let extra_args = extra_args.map(|args| args.join(" ")).unwrap_or_default();

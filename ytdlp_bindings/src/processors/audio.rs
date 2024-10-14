@@ -36,10 +36,10 @@ impl AudioProcessor for YtDlp {
         output_template: impl AsRef<Path>,
     ) -> Result<(), YtDlpError> {
         let input_str = file_input_path.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidOutputPath(file_input_path.as_ref().display().to_string())
+            YtDlpError::InvalidPath(file_input_path.as_ref().display().to_string())
         })?;
         let output_str = output_template.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidOutputPath(output_template.as_ref().display().to_string())
+            YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
         })?;
 
         self.run_ffmpeg(&[

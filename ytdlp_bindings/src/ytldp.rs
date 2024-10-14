@@ -75,7 +75,7 @@ impl YtDlp {
         output_template: P,
     ) -> Result<(), YtDlpError> {
         let output_str = output_template.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidOutputPath(output_template.as_ref().display().to_string())
+            YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
         })?;
 
         self.run_yt_dlp(&["--output", output_str, url])
@@ -98,7 +98,7 @@ impl YtDlp {
         output_template: P,
     ) -> Result<(), YtDlpError> {
         let output_str = output_template.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidOutputPath(output_template.as_ref().display().to_string())
+            YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
         })?;
 
         self.run_yt_dlp(&[
@@ -147,7 +147,7 @@ impl YtDlp {
         output_template: P,
     ) -> Result<(), YtDlpError> {
         let output_str = output_template.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidOutputPath(output_template.as_ref().display().to_string())
+            YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
         })?;
 
         self.run_yt_dlp(&["--output", output_str, "--yes-playlist", playlist_url])
@@ -201,7 +201,7 @@ impl YtDlp {
         output_template: P,
     ) -> Result<(), YtDlpError> {
         let output_str = output_template.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidOutputPath(output_template.as_ref().display().to_string())
+            YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
         })?;
 
         self.run_yt_dlp(&[
@@ -229,7 +229,7 @@ impl YtDlp {
         output_path: P,
     ) -> Result<(), YtDlpError> {
         let output_str = output_path.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidOutputPath(output_path.as_ref().display().to_string())
+            YtDlpError::InvalidPath(output_path.as_ref().display().to_string())
         })?;
 
         self.run_yt_dlp(&[

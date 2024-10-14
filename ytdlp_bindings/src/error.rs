@@ -8,8 +8,8 @@ pub enum YtDlpError {
         status: i32,
         output: String,
     },
-    #[error("Invalid output path: {0}")]
-    InvalidOutputPath(String),
+    #[error("Invalid path: {0}")]
+    InvalidPath(String),
     #[error("Failed to locate {0} binary")]
     BinaryNotFound(String),
     #[error("Failed to read VTT file: {0}")]
