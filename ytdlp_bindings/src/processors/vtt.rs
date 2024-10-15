@@ -59,6 +59,43 @@ pub struct SubtitleEntry {
     pub text: String,
 }
 
+impl SubtitleEntry {
+    pub fn entries_from_vtt_str(content: &str) -> Vec<SubtitleEntry> {
+        let mut entries = Vec::new();
+        let mut lines = content.lines();
+
+        // Skip the "WEBVTT" header
+        lines.next();
+
+        while let Some(line) = lines.next() {
+            if line.contains("-->") {
+                let times = line.split("-->").collect::<Vec<&str>>();
+                if times.len() == 2 {
+                    let start_time = times[0].trim().to_string();
+                    let end_time = times[1].trim().to_string();
+                    let mut text = String::new();
+
+                    for text_line in lines.by_ref() {
+                        if text_line.is_empty() {
+                            break;
+                        }
+                        text.push_str(text_line);
+                        text.push('\n');
+                    }
+
+                    entries.push(SubtitleEntry {
+                        start_time,
+                        end_time,
+                        text: text.trim().to_string(),
+                    });
+                }
+            }
+        }
+
+        entries
+    }
+}
+
 impl VttProcessor for YtDlp {
     fn read_vtt_file<P: AsRef<Path>>(&self, vtt_path: P) -> Result<String, YtDlpError> {
         let mut file = File::open(vtt_path)?;
@@ -89,43 +126,8 @@ impl VttProcessor for YtDlp {
         vtt_path: P,
     ) -> Result<Vec<SubtitleEntry>, YtDlpError> {
         let content = self.read_vtt_file(vtt_path)?;
-        Ok(parse_vtt_content(&content))
+        Ok(SubtitleEntry::entries_from_vtt_str(&content))
     }
-}
-
-pub fn parse_vtt_content(content: &str) -> Vec<SubtitleEntry> {
-    let mut entries = Vec::new();
-    let mut lines = content.lines();
-
-    // Skip the "WEBVTT" header
-    lines.next();
-
-    while let Some(line) = lines.next() {
-        if line.contains("-->") {
-            let times = line.split("-->").collect::<Vec<&str>>();
-            if times.len() == 2 {
-                let start_time = times[0].trim().to_string();
-                let end_time = times[1].trim().to_string();
-                let mut text = String::new();
-
-                for text_line in lines.by_ref() {
-                    if text_line.is_empty() {
-                        break;
-                    }
-                    text.push_str(text_line);
-                    text.push('\n');
-                }
-
-                entries.push(SubtitleEntry {
-                    start_time,
-                    end_time,
-                    text: text.trim().to_string(),
-                });
-            }
-        }
-    }
-
-    entries
 }
 
 #[cfg(test)]
