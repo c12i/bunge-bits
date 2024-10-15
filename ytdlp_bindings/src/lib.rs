@@ -30,6 +30,11 @@
 //! ```
 
 mod error;
+#[cfg(any(
+    feature = "audio-processing",
+    feature = "video-processing",
+    feature = "vtt-processing"
+))]
 mod processors;
 mod ytldp;
 
