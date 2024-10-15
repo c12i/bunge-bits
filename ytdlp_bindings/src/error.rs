@@ -13,7 +13,7 @@ pub enum YtDlpError {
     #[error("Failed to locate {0} binary")]
     BinaryNotFound(String),
     #[error("Failed to read VTT file: {0}")]
-    VttReadError(#[source] std::io::Error),
+    VttReadError(String),
     #[error("Failed to parse JSON: {0}")]
     JsonParseError(#[from] serde_json::Error),
     #[error("Invalid input path: {0}")]

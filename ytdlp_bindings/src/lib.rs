@@ -44,5 +44,7 @@ pub use processors::audio::AudioProcessor;
 #[cfg(feature = "video-processing")]
 pub use processors::video::VideoProcessor;
 #[cfg(feature = "vtt-processing")]
-pub use processors::vtt::{SubtitleEntry, VttProcessor};
+pub use processors::vtt::VttProcessor;
+#[cfg(feature = "vtt-processing")]
+pub use webvtt_parser::{OwnedVtt, OwnedVttCue};
 pub use ytldp::YtDlp;
