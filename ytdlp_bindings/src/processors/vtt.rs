@@ -1,6 +1,6 @@
 //! # vtt
 //!
-//! Enrich `YtDlp` by adding VTT processing capabilities
+//! Enrich `YtDlp` by adding web-VTT (web Video Text Tracks) processing capabilities
 
 use std::{
     fs::File,

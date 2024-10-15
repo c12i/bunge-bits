@@ -10,7 +10,7 @@ The following features are enabled by default:
   When disabled, you need to provide the path to the yt-dlp binary when creating an instance of YtDlp.
 - `audio-processing`: Adds downloaded audio processing capabilities to YtDlp via vendored ffmpeg (v7\*)
 - `video-processing`: Adds downloaded video processing capabilities to YtDlp also via vendored ffmpeg (v7\*)
-- `vtt-processing`: Adds downloaded VTT file processing capabilities to YtDlp
+- `vtt-processing`: Adds downloaded web VTT (Video Text Tracks) file processing capabilities to YtDlp
 
 ## Installation
 
