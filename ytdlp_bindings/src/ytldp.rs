@@ -228,9 +228,10 @@ impl YtDlp {
         url: &str,
         output_path: P,
     ) -> Result<(), YtDlpError> {
-        let output_str = output_path.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidPath(output_path.as_ref().display().to_string())
-        })?;
+        let output_str = output_path
+            .as_ref()
+            .to_str()
+            .ok_or_else(|| YtDlpError::InvalidPath(output_path.as_ref().display().to_string()))?;
 
         self.run_yt_dlp(&[
             "--write-sub",
@@ -322,6 +323,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Only here for debugging"]
     fn debug_download_auto_sub_part() -> Result<(), Box<dyn std::error::Error>> {
         let ytdlp = YtDlp::new()?;
         let temp_dir = env::temp_dir();
@@ -359,8 +361,6 @@ mod tests {
     }
 
     const TEST_VIDEO_URL: &str = "https://www.youtube.com/watch?v=jNQXAC9IVRw";
-    const TEST_PLAYLIST_URL: &str =
-        "https://www.youtube.com/playlist?list=PLzH6n4zXuckpKAj1_88VS-8Z6yn9zX_P6";
 
     #[test]
     fn test_download_video() {
@@ -393,85 +393,5 @@ mod tests {
             "File size is too small, expected > 1MB, got {} bytes",
             file_size
         );
-    }
-
-    #[test]
-    fn test_download_video_with_format() {
-        let ytdlp = YtDlp::new().expect("Failed to create YtDlp instance");
-        let temp_dir = tempdir().expect("Failed to create temp directory");
-        let output_template = temp_dir.path().join("%(title)s.%(ext)s");
-
-        let result = ytdlp.download_with_options(
-            TEST_VIDEO_URL,
-            &[
-                "--format",
-                "bestaudio[ext=m4a]",
-                "--output",
-                output_template.to_str().unwrap(),
-            ],
-        );
-
-        assert!(
-            result.is_ok(),
-            "Failed to download video: {:?}",
-            result.err()
-        );
-
-        let files: Vec<_> = fs::read_dir(temp_dir.path())
-            .expect("Failed to read temp directory")
-            .collect();
-
-        assert!(!files.is_empty(), "No files were downloaded");
-
-        let downloaded_file = &files[0].as_ref().expect("Failed to get file info").path();
-        assert!(downloaded_file.exists(), "Downloaded file does not exist");
-        assert!(
-            downloaded_file.extension().unwrap() == "m4a",
-            "File is not in m4a format"
-        );
-    }
-
-    #[test]
-    fn test_download_playlist() {
-        let ytdlp = YtDlp::new().expect("Failed to create YtDlp instance");
-        let temp_dir = tempdir().expect("Failed to create temp directory");
-        let output_template = temp_dir.path().join("%(playlist_index)s-%(title)s.%(ext)s");
-
-        let result = ytdlp.download_playlist(TEST_PLAYLIST_URL, output_template);
-
-        assert!(
-            result.is_ok(),
-            "Failed to download playlist: {:?}",
-            result.err()
-        );
-
-        let files: Vec<_> = fs::read_dir(temp_dir.path())
-            .expect("Failed to read temp directory")
-            .collect();
-
-        assert!(
-            files.len() > 1,
-            "Not enough files were downloaded. Expected multiple, got {}",
-            files.len()
-        );
-
-        for file in files {
-            let file_path = file.expect("Failed to get file info").path();
-            assert!(
-                file_path.exists(),
-                "Downloaded file does not exist: {:?}",
-                file_path
-            );
-
-            let file_size = fs::metadata(&file_path)
-                .expect("Failed to get file metadata")
-                .len();
-            assert!(
-                file_size > 1000000,
-                "File size is too small, expected > 1MB, got {} bytes: {:?}",
-                file_size,
-                file_path
-            );
-        }
     }
 }

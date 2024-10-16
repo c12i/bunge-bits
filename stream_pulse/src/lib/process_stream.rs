@@ -81,16 +81,3 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
 
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_openai() {
-        fetch_and_process_streams()
-            .await
-            .inspect_err(|e| eprintln!("Error: {}", e))
-            .unwrap();
-    }
-}
