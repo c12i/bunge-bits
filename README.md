@@ -12,8 +12,8 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
 
 - [x] ytInitialData parser: Parsing logic that parses scraped data from youtube
 - [x] Data store: Sqlite database bindings for storing, retreivig and modifying stream data
-- [x] Ytdlp bindings: Bindings to interact with the yt-dlp cli as well as some utilities to interact with video and vtt data
-- [ ] Ffmpeg bindings: Fffmpeg bindings to complement the Ytdlp bindings for the purpose of processing audio
+- [x] `yt-dlp` bindings: Bindings to interact with the yt-dlp cli as well as some utilities to interact with video and vtt data
+- [x] `ffmpeg` bindings: Fffmpeg bindings to complement the Ytdlp bindings for the purpose of processing audio
 - [x] Stream pulse: A cron job that periodically fetches and processes streams
 - [x] Stream digest: Functions that make it possible to efficiently process vtt file content in chunks
 - [ ] LLM Service: A service that interacts with OpenAI's ChatGPT (or any other LLM) to handle summarizing the downloaded audio
