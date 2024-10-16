@@ -49,12 +49,14 @@ impl VideoProcessor for YtDlp {
         input_path: P,
         output_path: P,
     ) -> Result<(), YtDlpError> {
-        let input_str = input_path.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidPath(input_path.as_ref().display().to_string())
-        })?;
-        let output_str = output_path.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidPath(output_path.as_ref().display().to_string())
-        })?;
+        let input_str = input_path
+            .as_ref()
+            .to_str()
+            .ok_or_else(|| YtDlpError::InvalidPath(input_path.as_ref().display().to_string()))?;
+        let output_str = output_path
+            .as_ref()
+            .to_str()
+            .ok_or_else(|| YtDlpError::InvalidPath(output_path.as_ref().display().to_string()))?;
 
         self.run_ffmpeg(&["-i", input_str, output_str])
     }
@@ -66,9 +68,10 @@ impl VideoProcessor for YtDlp {
         output_template: P,
         extra_args: Option<&[&str]>,
     ) -> Result<(), YtDlpError> {
-        let input_str = input_path.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidPath(input_path.as_ref().display().to_string())
-        })?;
+        let input_str = input_path
+            .as_ref()
+            .to_str()
+            .ok_or_else(|| YtDlpError::InvalidPath(input_path.as_ref().display().to_string()))?;
         let output_str = output_template.as_ref().to_str().ok_or_else(|| {
             YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
         })?;
