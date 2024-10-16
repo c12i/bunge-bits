@@ -80,7 +80,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Process subtitles
     let subtitles = ytdlp.process_vtt_file("subtitles.vtt")?;
     for entry in subtitles {
-        println!("{} -> {}: {}", entry.start_time, entry.end_time, entry.text);
+        println!("{:?}", entry);
     }
 
     Ok(())

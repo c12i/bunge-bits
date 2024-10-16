@@ -18,18 +18,6 @@ impl Stream {
     /// # Returns
     ///
     /// A `String` containing the full URL to watch the stream on YouTube.
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// use bunge_bits_datastore::Stream;
-    ///
-    /// let stream = Stream {
-    ///     video_id: "dQw4w9WgXcQ".to_string(),
-    ///     ..Default::default()
-    /// };
-    /// assert_eq!(stream.url(), "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
-    /// ```
     pub fn url(&self) -> String {
         format!("https://www.youtube.com/watch?v={}", self.video_id)
     }
@@ -49,19 +37,6 @@ impl Stream {
     ///
     /// The calculated timestamp is an approximation and may not be exact, especially
     /// for longer time periods like months or years due to varying month lengths and leap years.
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// use bunge_bits_datastore::Stream;
-    ///
-    /// let stream = Stream {
-    ///     streamed_date: "2 hours ago".to_string(),
-    ///     ..Default::default()
-    /// };
-    /// let timestamp = stream.timestamp_from_time_ago();
-    /// assert!(timestamp.is_some());
-    /// ```
     pub fn timestamp_from_time_ago(&self) -> Option<DateTime<Utc>> {
         let now = Utc::now();
 
