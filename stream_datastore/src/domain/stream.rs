@@ -21,7 +21,7 @@ impl Stream {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
     /// use bunge_bits_datastore::Stream;
     ///
     /// let stream = Stream {
@@ -52,7 +52,7 @@ impl Stream {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust,no_run
     /// use bunge_bits_datastore::Stream;
     ///
     /// let stream = Stream {

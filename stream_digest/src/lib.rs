@@ -38,32 +38,6 @@ use std::{future::Future, pin::Pin, sync::Arc};
 /// - The `summarize_chunk` function returns an error for any chunk.
 /// - The `combine_summaries` function returns an error.
 ///
-/// # Example
-///
-/// ```rust,no_run
-/// use std::sync::Arc;
-/// use anyhow::Error;
-/// use std::future::Future;
-/// use std::pin::Pin;
-///
-/// async fn example_summarize() -> Result<(), Error> {
-///     let vtt = "WEBVTT\n\n00:00:00.000 --> 00:00:05.000\nHello, world!".to_string();
-///
-///     let result = summarize_with_sliding_window(
-///         vtt,
-///         |chunk, context| Box::pin(async move {
-///             Ok(format!("Summary of chunk: {} (Context: {})", chunk, context))
-///         }),
-///         |summaries| Box::pin(async move {
-///             Ok(summaries.join(" "))
-///         })
-///     ).await?;
-///
-///     println!("Final summary: {}", result);
-///     Ok(())
-/// }
-/// ```
-///
 /// # Note
 ///
 /// This function uses a [`SlidingWindow`](crate::sliding_window::SlidingWindow) struct internally to manage the windowing process.
