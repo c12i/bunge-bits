@@ -28,12 +28,18 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
 
     match extract_json_from_script(&response) {
         Ok(json) => {
-            let streams = parse_streams(&json)?;
+            let mut streams = parse_streams(&json)?;
 
             // This is where initially downloaded audio by yt-dlp is saved
             let audio_download_path = PathBuf::from("/var/tmp/bunge-bits/audio");
             // This is were ausosubs are stored
             let autosub_path = PathBuf::from("/var/tmp/bunge-bits/autosub");
+
+            // sort by upload date
+            streams.sort_by(|a, b| {
+                b.timestamp_from_time_ago()
+                    .cmp(&a.timestamp_from_time_ago())
+            });
 
             let mut streams = streams
                 .into_iter()
