@@ -1,0 +1,6 @@
+Context: {context}
+
+VTT Chunk:
+{text}
+
+Based on the transcript chunk and the provided context, please summarize it based on the instructions you received previously.
