@@ -1,6 +1,18 @@
-use std::{fs::create_dir_all, path::PathBuf, sync::LazyLock};
+use std::{
+    fs::{create_dir_all, OpenOptions},
+    io::Write,
+    path::PathBuf,
+    sync::LazyLock,
+};
 
 use anyhow::Context;
+use openai_dive::v1::{
+    models::WhisperEngine,
+    resources::{
+        audio::{AudioOutputFormat, AudioTranscriptionParametersBuilder},
+        shared::FileUpload,
+    },
+};
 use rayon::prelude::*;
 use stream_datastore::{DataStore, Stream};
 use ytdlp_bindings::{AudioProcessor, YtDlp, YtDlpError};
@@ -21,6 +33,7 @@ const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChan
 pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
     let client = &CLIENT;
     let ytdlp = YTDLP.as_ref()?;
+    let openai = &OPENAI;
 
     let db = DataStore::new("bunge-bits-store.db").context("Failed to connect to database")?;
 
@@ -79,6 +92,30 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
 
                 Ok::<_, anyhow::Error>(())
             })?;
+
+            for stream in streams {
+                let audio_chunks_path =
+                    PathBuf::from(format!("/var/tmp/bunge-bits/audio/{}", stream.video_id));
+                let mut transcript_file = OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(format!("/var/tmp/bunge-bits/{}.txt", stream.video_id))?;
+
+                for file in std::fs::read_dir(&audio_chunks_path).context("Failed to read dir")? {
+                    let file = file.context("Failed to get file")?;
+                    let params = AudioTranscriptionParametersBuilder::default()
+                        .file(FileUpload::File(format!("{:?}", file.path())))
+                        .model(WhisperEngine::Whisper1.to_string())
+                        .response_format(AudioOutputFormat::Srt)
+                        .build()?;
+                    let transcription = openai.audio().create_transcription(params).await?;
+                    write!(transcript_file, "{}", transcription)?;
+                    writeln!(transcript_file, "---")?;
+                }
+            }
+            // TODO: On completion, use the summarize with sliding widnow function to
+            //       process the transcript and generate a summary and save it to the
+            //       database
         }
         Err(e) => {
             eprintln!("Error parsing streams: {}", e);
