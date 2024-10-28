@@ -15,7 +15,7 @@ use openai_dive::v1::{
 };
 use rayon::prelude::*;
 use stream_datastore::{DataStore, Stream};
-use stream_digest::summarize_with_sliding_window;
+use stream_digest::summarize_linear;
 use ytdlp_bindings::{AudioProcessor, YtDlp, YtDlpError};
 
 use crate::{extract_json_from_script, parse_streams};
@@ -119,8 +119,9 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
                     "/var/tmp/bunge-bits/{}.txt",
                     stream.video_id
                 ))?;
-                summarize_with_sliding_window(
+                summarize_linear(
                     &transcript,
+                    "----END_OF_CHUNK----",
                     |chunk, ctx| Box::pin(async move { summarize_chunk(chunk, ctx).await }),
                     |summaries| Box::pin(async move { combine_summaries(summaries).await }),
                 )

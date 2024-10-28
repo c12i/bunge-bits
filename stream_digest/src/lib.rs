@@ -158,9 +158,13 @@ where
     let mut context = None;
 
     for chunk in contents {
-        let summary = summarize_chunk(chunk.to_owned(), context).await?;
+        let summary = summarize_chunk(chunk.to_owned(), context.to_owned()).await?;
 
-        context = Some(Arc::new(summary.to_owned()));
+        context = Some(Arc::new(match context {
+            Some(current_context) => format!("{}\n{}", *current_context, summary),
+            None => summary.to_string(),
+        }));
+
         summaries.push(summary);
     }
 
