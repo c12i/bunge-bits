@@ -110,7 +110,7 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
                         .build()?;
                     let transcription = openai.audio().create_transcription(params).await?;
                     write!(transcript_file, "{}", transcription)?;
-                    writeln!(transcript_file, "---END-OF-LINE---")?;
+                    writeln!(transcript_file, "----END_OF_CHUNK----")?;
                 }
             }
 
