@@ -2,7 +2,7 @@ use std::{
     fs::{create_dir_all, OpenOptions},
     io::Write,
     path::PathBuf,
-    sync::LazyLock,
+    sync::{Arc, LazyLock},
 };
 
 use anyhow::Context;
@@ -15,6 +15,7 @@ use openai_dive::v1::{
 };
 use rayon::prelude::*;
 use stream_datastore::{DataStore, Stream};
+use stream_digest::summarize_with_sliding_window;
 use ytdlp_bindings::{AudioProcessor, YtDlp, YtDlpError};
 
 use crate::{extract_json_from_script, parse_streams};
@@ -23,7 +24,6 @@ static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 
 static YTDLP: LazyLock<Result<YtDlp, YtDlpError>> = LazyLock::new(YtDlp::new);
 
-#[allow(unused)]
 static OPENAI: LazyLock<openai_dive::v1::api::Client> =
     LazyLock::new(openai_dive::v1::api::Client::new_from_env);
 
@@ -93,7 +93,7 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
                 Ok::<_, anyhow::Error>(())
             })?;
 
-            for stream in streams {
+            for stream in streams.iter() {
                 let audio_chunks_path =
                     PathBuf::from(format!("/var/tmp/bunge-bits/audio/{}", stream.video_id));
                 let mut transcript_file = OpenOptions::new()
@@ -110,12 +110,22 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
                         .build()?;
                     let transcription = openai.audio().create_transcription(params).await?;
                     write!(transcript_file, "{}", transcription)?;
-                    writeln!(transcript_file, "---")?;
+                    writeln!(transcript_file, "---END-OF-LINE---")?;
                 }
             }
-            // TODO: On completion, use the summarize with sliding widnow function to
-            //       process the transcript and generate a summary and save it to the
-            //       database
+
+            for stream in streams {
+                let transcript = std::fs::read_to_string(format!(
+                    "/var/tmp/bunge-bits/{}.txt",
+                    stream.video_id
+                ))?;
+                summarize_with_sliding_window(
+                    &transcript,
+                    |chunk, ctx| Box::pin(async move { summarize_chunk(chunk, ctx).await }),
+                    |summaries| Box::pin(async move { combine_summaries(summaries).await }),
+                )
+                .await?;
+            }
         }
         Err(e) => {
             eprintln!("Error parsing streams: {}", e);
@@ -123,4 +133,18 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+async fn summarize_chunk(
+    _chunk: String,
+    _context: Option<Arc<String>>,
+) -> Result<String, anyhow::Error> {
+    // TODO: Make API call to openai to summarize a chunk with optional context
+    todo!()
+}
+
+async fn combine_summaries(_summaries: Vec<String>) -> Result<String, anyhow::Error> {
+    // TODO: Make API call to combine the summaries into a single coherent summary
+    //       Save the resulting output to database
+    todo!()
 }
