@@ -115,31 +115,6 @@ where
 /// - Processes chunks sequentially without overlap
 /// - Uses a delimiter to split the input rather than fixed-size windows
 /// - Passes the entire previous summary as context rather than a fixed context size
-///
-/// # Example
-///
-/// ```rust,no_run
-/// use std::sync::Arc;
-///
-/// async fn example_usage() -> Result<String, anyhow::Error> {
-///     let vtt = "chunk1\n---\nchunk2\n---\nchunk3";
-///     
-///     let summarize = |text: String, context: Option<Arc<String>>| {
-///         Box::pin(async move {
-///             // Implement chunk summarization
-///             Ok(format!("Summary of: {}", text))
-///         })
-///     };
-///     
-///     let combine = |summaries: Vec<String>| {
-///         Box::pin(async move {
-///             Ok(summaries.join("\n"))
-///         })
-///     };
-///     
-///     summarize_linear(vtt, "---", summarize, combine).await
-/// }
-/// ```
 pub async fn summarize_linear<FnSummary, FnCombine>(
     vtt: &str,
     delimiter: &str,
