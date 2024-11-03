@@ -5,7 +5,15 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
+use openai_dive::v1::{
+    api::Client as OpenAiClient,
+    models::Gpt4Engine,
+    resources::chat::{
+        ChatCompletionParametersBuilder, ChatCompletionResponseFormat, ChatMessage,
+        ChatMessageContent,
+    },
+};
 use openai_dive::v1::{
     models::WhisperEngine,
     resources::{
@@ -24,8 +32,7 @@ static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 
 static YTDLP: LazyLock<Result<YtDlp, YtDlpError>> = LazyLock::new(YtDlp::new);
 
-static OPENAI: LazyLock<openai_dive::v1::api::Client> =
-    LazyLock::new(openai_dive::v1::api::Client::new_from_env);
+static OPENAI: LazyLock<OpenAiClient> = LazyLock::new(openai_dive::v1::api::Client::new_from_env);
 
 //  Parliament of Kenya Channel Stream URL
 const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChannel/streams";
@@ -122,8 +129,8 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
                 summarize_linear(
                     &transcript,
                     "----END_OF_CHUNK----",
-                    |chunk, ctx| Box::pin(async move { summarize_chunk(chunk, ctx).await }),
-                    |summaries| Box::pin(async move { combine_summaries(summaries).await }),
+                    |chunk, ctx| Box::pin(async move { summarize_chunk(chunk, ctx, openai).await }),
+                    |summaries| Box::pin(async move { combine_summaries(summaries, openai).await }),
                 )
                 .await?;
             }
@@ -137,15 +144,81 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
 }
 
 async fn summarize_chunk(
-    _chunk: String,
-    _context: Option<Arc<String>>,
+    chunk: String,
+    context: Option<Arc<String>>,
+    openai: &OpenAiClient,
 ) -> Result<String, anyhow::Error> {
-    // TODO: Make API call to openai to summarize a chunk with optional context
-    todo!()
+    let user_prompt = context.map(|ctx| {
+        format!(
+            r#"
+Context:
+{}
+
+VTT Chunk:
+{}
+
+Based on the transcript chunk and the provided context, please summarize it based on the instructions you received previously.
+        "#,
+            ctx, chunk
+        )
+    }).unwrap_or_else(|| {
+        format!(
+            r#"
+VTT Chunk:
+{}
+
+Based on the transcript chunk, please summarize it based on the instructions you received previously.
+        "#,
+            chunk
+        )
+        });
+
+    let parameters = ChatCompletionParametersBuilder::default()
+        .model(Gpt4Engine::Gpt4O.to_string())
+        .messages(vec![
+            ChatMessage::System {
+                content: ChatMessageContent::Text(include_str!("../prompts/system_0.txt").into()),
+                name: None,
+            },
+            ChatMessage::User {
+                content: ChatMessageContent::Text(user_prompt),
+                name: None,
+            },
+        ])
+        .response_format(ChatCompletionResponseFormat::Text)
+        .build()?;
+    let response = openai.chat().create(parameters).await?;
+
+    let response = response
+        .choices
+        .first()
+        .map(|c| c.to_owned())
+        .context("response.choices is unexpectedly empty")?;
+
+    let response = match response.message {
+        ChatMessage::Assistant { content, .. } => {
+            if let Some(content) = content {
+                match content {
+                    ChatMessageContent::Text(text) => text,
+                    c => return Err(anyhow!("Unexpcted chat message content: {:?}", c)),
+                }
+            } else {
+                return Err(anyhow!("Unexpected absence of chage message content"));
+            }
+        }
+        c => return Err(anyhow!("Unexpcted chat message response: {:?}", c)),
+    };
+
+    Ok(response)
 }
 
-async fn combine_summaries(_summaries: Vec<String>) -> Result<String, anyhow::Error> {
+#[allow(unused)]
+async fn combine_summaries(
+    summaries: Vec<String>,
+    openai: &OpenAiClient,
+) -> Result<String, anyhow::Error> {
     // TODO: Make API call to combine the summaries into a single coherent summary
     //       Save the resulting output to database
+    let summaries = summaries.join("\n");
     todo!()
 }
