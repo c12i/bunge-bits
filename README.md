@@ -16,5 +16,5 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
 - [x] `ffmpeg` bindings: Fffmpeg bindings to complement the Ytdlp bindings for the purpose of processing audio
 - [x] Stream pulse: A cron job that periodically fetches and processes streams
 - [x] Stream digest: Functions that make it possible to efficiently process vtt file content in chunks
-- [ ] LLM Service: A service that interacts with OpenAI's ChatGPT (or any other LLM) to handle summarizing the downloaded audio
+- [x] LLM Service: A service that interacts with OpenAI's ChatGPT (or any other LLM) to handle summarizing the downloaded audio
 - [ ] Web App: The end user interface that will display the summarized content
