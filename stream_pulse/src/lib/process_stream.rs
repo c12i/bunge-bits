@@ -10,8 +10,8 @@ use openai_dive::v1::{
     api::Client as OpenAiClient,
     models::Gpt4Engine,
     resources::chat::{
-        ChatCompletionParametersBuilder, ChatCompletionResponseFormat, ChatMessage,
-        ChatMessageContent,
+        ChatCompletionParametersBuilder, ChatCompletionResponse, ChatCompletionResponseFormat,
+        ChatMessage, ChatMessageContent,
     },
 };
 use openai_dive::v1::{
@@ -189,6 +189,44 @@ Based on the transcript chunk, please summarize it based on the instructions you
         .build()?;
     let response = openai.chat().create(parameters).await?;
 
+    chat_completions_text_from_response(response)
+}
+
+async fn combine_summaries(
+    summaries: Vec<String>,
+    openai: &OpenAiClient,
+) -> Result<String, anyhow::Error> {
+    let summaries = summaries.join("\n");
+
+    let parameters = ChatCompletionParametersBuilder::default()
+        .model(Gpt4Engine::Gpt4O.to_string())
+        .messages(vec![
+            ChatMessage::User {
+                content: ChatMessageContent::Text(
+                    format!(
+                        r#"
+Given the following summaries of a video live stream chunks. Combine them into a single coherent summary:
+
+Summaries:
+{}
+                        "#, 
+                            summaries
+                    )
+                ),
+                name: None,
+            },
+        ])
+        .response_format(ChatCompletionResponseFormat::Text)
+        .build()?;
+
+    let response = openai.chat().create(parameters).await?;
+
+    chat_completions_text_from_response(response)
+}
+
+pub fn chat_completions_text_from_response(
+    response: ChatCompletionResponse,
+) -> Result<String, anyhow::Error> {
     let response = response
         .choices
         .first()
@@ -210,15 +248,4 @@ Based on the transcript chunk, please summarize it based on the instructions you
     };
 
     Ok(response)
-}
-
-#[allow(unused)]
-async fn combine_summaries(
-    summaries: Vec<String>,
-    openai: &OpenAiClient,
-) -> Result<String, anyhow::Error> {
-    // TODO: Make API call to combine the summaries into a single coherent summary
-    //       Save the resulting output to database
-    let summaries = summaries.join("\n");
-    todo!()
 }
