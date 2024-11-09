@@ -1,8 +1,10 @@
 [package]
 name = "ytdlp_bindings"
+description = "ytdlp cli bindings" 
 authors = ["c12i <hello@collinsmuriuki.xyz>"]
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 anyhow = "1.0.89"
