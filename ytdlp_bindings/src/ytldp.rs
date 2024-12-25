@@ -8,6 +8,7 @@ use crate::YtDlpError;
 ///
 /// This struct provides methods to download subtitles and process VTT files.
 /// It can be created with a custom binary path or use a vendored binary.
+#[derive(Debug, Clone)]
 pub struct YtDlp {
     pub(crate) binary_path: PathBuf,
 }
