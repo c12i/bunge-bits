@@ -5,7 +5,7 @@ use std::path::Path;
 
 /// The yt-dlp version based off their github releases
 /// <https://github.com/yt-dlp/yt-dlp/releases>
-const YTDLP_RELEASE: &str = "2024.08.06";
+const YTDLP_RELEASE: &str = "2025.03.31";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Determine the target OS and architecture
