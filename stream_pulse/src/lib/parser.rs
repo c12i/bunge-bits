@@ -132,8 +132,7 @@ impl TryFrom<VideoRenderer> for StreamWrapper {
 /// * `document`: The entire HTML content of the YouTube page as a string.
 ///
 /// # Returns
-/// * `Option<T>`: Some(T) if the JSON was successfully extracted and parsed,
-///                    None if the JSON couldn't be found or parsed.
+/// * `Option<T>`: Some(T) if the JSON was successfully extracted and parsed, None if the JSON couldn't be found or parsed.
 ///
 /// # Note
 /// This method is somewhat fragile as it depends on the specific structure of YouTube's
