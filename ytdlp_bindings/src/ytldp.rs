@@ -4,6 +4,8 @@ use std::process::Command;
 
 use crate::YtDlpError;
 
+const YTDLP_BINARY: &str = env!("YTDLP_BINARY");
+
 /// The main struct for interacting with yt-dlp.
 ///
 /// This struct provides methods to download subtitles and process VTT files.
@@ -23,10 +25,11 @@ impl YtDlp {
     /// Returns `YtDlpError::BinaryNotFound` if the binary cannot be located.
     #[cfg(feature = "yt-dlp-vendored")]
     pub fn new() -> Result<Self, YtDlpError> {
-        let binary_path = env::var("YTDLP_BINARY")
-            .map(PathBuf::from)
-            .or_else(|_| which::which("yt-dlp"))
-            .map_err(|_| YtDlpError::BinaryNotFound("yt-dlp".to_string()))?;
+        let binary_path = if !YTDLP_BINARY.is_empty() {
+            PathBuf::from(YTDLP_BINARY)
+        } else {
+            which::which("yt-dlp").map_err(|_| YtDlpError::BinaryNotFound("yt-dlp".to_string()))?
+        };
 
         Ok(YtDlp { binary_path })
     }
