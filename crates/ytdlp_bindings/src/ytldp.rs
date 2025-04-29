@@ -1,4 +1,5 @@
 use std::env;
+use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -24,6 +25,7 @@ impl YtDlp {
     ///
     /// Returns `YtDlpError::BinaryNotFound` if the binary cannot be located.
     #[cfg(feature = "yt-dlp-vendored")]
+    #[tracing::instrument]
     pub fn new() -> Result<Self, YtDlpError> {
         #[allow(clippy::const_is_empty)]
         let binary_path = if !YTDLP_BINARY.is_empty() {
@@ -74,7 +76,8 @@ impl YtDlp {
     ///     Ok(())
     /// }
     /// ```
-    pub fn download_video<P: AsRef<Path>>(
+    #[tracing::instrument(skip(self))]
+    pub fn download_video<P: AsRef<Path> + Debug>(
         &self,
         url: &str,
         output_template: P,
@@ -97,7 +100,8 @@ impl YtDlp {
     /// # Errors
     ///
     /// Returns `YtDlpError` if the download fails or if the output template is invalid.
-    pub fn download_audio<P: AsRef<Path>>(
+    #[tracing::instrument(skip(self))]
+    pub fn download_audio<P: AsRef<Path> + Debug>(
         &self,
         url: &str,
         output_template: P,
@@ -146,7 +150,8 @@ impl YtDlp {
     ///     Ok(())
     /// }
     /// ```
-    pub fn download_playlist<P: AsRef<Path>>(
+    #[tracing::instrument(skip(self))]
+    pub fn download_playlist<P: AsRef<Path> + Debug>(
         &self,
         playlist_url: &str,
         output_template: P,
@@ -184,6 +189,7 @@ impl YtDlp {
     ///     Ok(())
     ///  }
     /// ```
+    #[tracing::instrument(skip(self))]
     pub fn download_with_options(&self, url: &str, options: &[&str]) -> Result<(), YtDlpError> {
         let mut args = options.to_vec();
         args.push(url);
@@ -200,7 +206,8 @@ impl YtDlp {
     /// # Errors
     ///
     /// Returns `YtDlpError` if the download fails or if the output path is invalid.
-    pub fn download_auto_sub<P: AsRef<Path>>(
+    #[tracing::instrument(skip(self))]
+    pub fn download_auto_sub<P: AsRef<Path> + Debug>(
         &self,
         url: &str,
         output_template: P,
@@ -228,7 +235,8 @@ impl YtDlp {
     /// # Errors
     ///
     /// Returns `YtDlpError` if the download fails or if the output path is invalid.
-    pub fn download_sub<P: AsRef<Path>>(
+    #[tracing::instrument(skip(self))]
+    pub fn download_sub<P: AsRef<Path> + Debug>(
         &self,
         url: &str,
         output_path: P,
@@ -247,6 +255,7 @@ impl YtDlp {
         ])
     }
 
+    #[tracing::instrument(skip(self))]
     pub(crate) fn run_yt_dlp(&self, args: &[&str]) -> Result<(), YtDlpError> {
         let output = Command::new(&self.binary_path).args(args).output()?;
 
@@ -262,6 +271,7 @@ impl YtDlp {
     }
 
     #[cfg(any(feature = "audio-processing", feature = "video-processing"))]
+    #[tracing::instrument(skip(self))]
     pub(crate) fn run_ffmpeg(&self, args: &[&str]) -> Result<(), YtDlpError> {
         if which::which("ffmpeg").is_err() {
             return Err(YtDlpError::BinaryNotFound("ffmpeg".to_string()));

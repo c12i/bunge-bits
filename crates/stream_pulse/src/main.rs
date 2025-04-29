@@ -23,8 +23,7 @@
 //! - The initial run processes all 30 archived streams sequentially.
 //! - Subsequent runs focus on identifying and processing new streams.
 
-use anyhow::Result;
-use stream_pulse::fetch_and_process_streams;
+use stream_pulse::{fetch_and_process_streams, tracing::init_tracing_subscriber};
 use tokio_cron_scheduler::{JobBuilder, JobScheduler};
 
 // Should run every 12 hours
@@ -32,7 +31,9 @@ const CRON_EXPR: &str = "0 0 */12 * * *";
 // const CRON_EXPR: &str = "*/15 * * * * *";
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<()> {
+async fn main() -> anyhow::Result<()> {
+    init_tracing_subscriber()?;
+
     let mut scheduler = JobScheduler::new().await?;
 
     let job = JobBuilder::new()

@@ -1,6 +1,7 @@
 mod error;
 mod parser;
 mod process_stream;
+pub mod tracing;
 pub mod types;
 
 use parser::{extract_json_from_script, parse_streams};

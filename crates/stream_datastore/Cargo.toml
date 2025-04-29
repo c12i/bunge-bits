@@ -9,8 +9,8 @@ name = "stream_datastore"
 path = "./src/lib.rs"
 
 [dependencies]
-anyhow = "1.0"
+anyhow = { workspace = true }
 chrono = "0.4.38"
-rusqlite = "0.32.1"
+rusqlite = "0.35.0"
 regex = "1.10.6"
-
+tracing = { workspace = true }
