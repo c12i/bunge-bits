@@ -25,6 +25,7 @@ impl YtDlp {
     /// Returns `YtDlpError::BinaryNotFound` if the binary cannot be located.
     #[cfg(feature = "yt-dlp-vendored")]
     pub fn new() -> Result<Self, YtDlpError> {
+        #[allow(clippy::const_is_empty)]
         let binary_path = if !YTDLP_BINARY.is_empty() {
             PathBuf::from(YTDLP_BINARY)
         } else {
