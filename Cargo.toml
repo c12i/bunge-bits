@@ -1,10 +1,9 @@
 [workspace]
 members = [
-  "stream_datastore",
-  "stream_digest",
-  "stream_pulse",
-  "ytdlp_bindings",
-  "web_app",
+  "crates/stream_datastore",
+  "crates/stream_digest",
+  "crates/stream_pulse",
+  "crates/ytdlp_bindings",
 ]
 
 resolver = "2"
