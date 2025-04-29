@@ -11,6 +11,7 @@ pub struct DataStore {
 impl DataStore {
     pub fn new<P: AsRef<Path>>(database_path: P) -> anyhow::Result<Self> {
         let conn = Connection::open(database_path)
+            .inspect_err(|e| tracing::error!("Failed to open connection to db: {e:?}"))
             .map_err(|e| anyhow!("Failed to connect to database: {}", e))?;
 
         // Create the streams table
@@ -28,6 +29,7 @@ impl DataStore {
             "#,
             [],
         )
+        .inspect_err(|e| tracing::error!("Failed to create table: {e:?}"))
         .map_err(|e| anyhow!("Failed to create streams table: {}", e))?;
 
         Ok(DataStore { conn })
@@ -38,8 +40,10 @@ impl DataStore {
             .timestamp_from_time_ago()
             .context("Failed to get timestamp")?;
 
-        let result = self.conn.execute(
-            r#"
+        let result = self
+            .conn
+            .execute(
+                r#"
             INSERT INTO streams (
                 video_id,
                 title,
@@ -51,16 +55,17 @@ impl DataStore {
             )
             VALUES (?, ?, ?, ?, ?, ?, ?)
             "#,
-            params![
-                &stream.video_id,
-                &stream.title,
-                &stream.view_count,
-                &stream.streamed_date,
-                timestamp.to_string(),
-                &stream.duration,
-                &stream.closed_captions_summary,
-            ],
-        );
+                params![
+                    &stream.video_id,
+                    &stream.title,
+                    &stream.view_count,
+                    &stream.streamed_date,
+                    timestamp.to_string(),
+                    &stream.duration,
+                    &stream.closed_captions_summary,
+                ],
+            )
+            .inspect_err(|e| tracing::error!("Failed to execute query: {e:?}"));
 
         match result {
             Ok(_) => Ok(()),
@@ -81,6 +86,7 @@ impl DataStore {
                 params![video_id],
                 |row| row.get(0),
             )
+            .inspect_err(|e| tracing::error!("Failed to execute query: {e:?}"))
             .context("Failed to check if stream exists")?;
 
         Ok(count > 0)
@@ -97,8 +103,9 @@ impl DataStore {
                 .timestamp_from_time_ago()
                 .context("Failed to get timestamp")?;
 
-            let result = tx.execute(
-                r#"
+            let result = tx
+                .execute(
+                    r#"
                 INSERT INTO streams (
                     video_id,
                     title,
@@ -110,16 +117,17 @@ impl DataStore {
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 "#,
-                params![
-                    &stream.video_id,
-                    &stream.title,
-                    &stream.view_count,
-                    &stream.streamed_date,
-                    timestamp.to_string(),
-                    &stream.duration,
-                    &stream.closed_captions_summary,
-                ],
-            );
+                    params![
+                        &stream.video_id,
+                        &stream.title,
+                        &stream.view_count,
+                        &stream.streamed_date,
+                        timestamp.to_string(),
+                        &stream.duration,
+                        &stream.closed_captions_summary,
+                    ],
+                )
+                .inspect_err(|e| tracing::error!("Failed to execute query: {e:?}"));
 
             match result {
                 Ok(_) => successful_inserts += 1,
@@ -140,7 +148,8 @@ impl DataStore {
             }
         }
 
-        tx.commit()?;
+        tx.commit()
+            .inspect_err(|e| tracing::error!("Failed to commit transaction: {e:?}"))?;
 
         Ok(BulkInsertResult {
             successful_inserts,
@@ -149,20 +158,23 @@ impl DataStore {
     }
 
     pub fn get_stream(&self, video_id: &str) -> anyhow::Result<Option<Stream>> {
-        let result = self.conn.query_row(
-            "SELECT * FROM streams WHERE video_id = ?",
-            params![video_id],
-            |row| {
-                Ok(Stream {
-                    video_id: row.get(0)?,
-                    title: row.get(1)?,
-                    view_count: row.get(2)?,
-                    streamed_date: row.get(3)?,
-                    duration: row.get(5)?,
-                    closed_captions_summary: row.get(6)?,
-                })
-            },
-        );
+        let result = self
+            .conn
+            .query_row(
+                "SELECT * FROM streams WHERE video_id = ?",
+                params![video_id],
+                |row| {
+                    Ok(Stream {
+                        video_id: row.get(0)?,
+                        title: row.get(1)?,
+                        view_count: row.get(2)?,
+                        streamed_date: row.get(3)?,
+                        duration: row.get(5)?,
+                        closed_captions_summary: row.get(6)?,
+                    })
+                },
+            )
+            .inspect_err(|e| tracing::error!("Failed to execute query: {e:?}"));
 
         match result {
             Ok(stream) => Ok(Some(stream)),
@@ -190,6 +202,7 @@ impl DataStore {
                     &stream.video_id,
                 ],
             )
+            .inspect_err(|e| tracing::error!("Failed to execute query: {e:?}"))
             .context("Failed to update stream")?;
 
         Ok(())
@@ -198,6 +211,7 @@ impl DataStore {
     pub fn delete_stream(&self, video_id: &str) -> anyhow::Result<()> {
         self.conn
             .execute("DELETE FROM streams WHERE video_id = ?", params![video_id])
+            .inspect_err(|e| tracing::error!("Failed to execute query: {e:?}"))
             .context("Failed to delete stream")?;
 
         Ok(())
@@ -206,7 +220,8 @@ impl DataStore {
     pub fn list_streams(&self) -> anyhow::Result<Vec<Stream>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT * FROM streams ORDER BY stream_timestamp DESC")?;
+            .prepare("SELECT * FROM streams ORDER BY stream_timestamp DESC")
+            .inspect_err(|e| tracing::error!("Failed to prepare query: {e:?}"))?;
         let stream_iter = stmt.query_map([], |row| {
             Ok(Stream {
                 video_id: row.get(0)?,
