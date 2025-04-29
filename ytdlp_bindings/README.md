@@ -18,14 +18,14 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ytdlp-bindings = { git="https://gitub.com/c12i/bunge-bits", package = "ytdlp_bindings" }
+ytdlp-bindings = { git="https://github.com/c12i/bunge-bits", package = "ytdlp_bindings" }
 ```
 
 By default, this crate uses a vendored `yt-dlp` binary. If you want to use your system's yt-dlp installation, disable the default features:
 
 ```toml
 [dependencies]
-ytdlp-bindings = { git="https://gitub.com/c12i/bunge-bits", package = "ytdlp_bindings", default-features = false }
+ytdlp-bindings = { git="https://github.com/c12i/bunge-bits", package = "ytdlp_bindings", default-features = false }
 ```
 
 ## Usage
