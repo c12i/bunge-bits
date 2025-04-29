@@ -28,3 +28,10 @@ tokio-cron-scheduler = "0.13.0"
 chrono-tz = "0.10.0"
 futures = "0.3.30"
 rayon = "1.5"
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = [
+  "env-filter",
+  "json",
+  "registry",
+] }
+tracing-bunyan-formatter = "0.3"

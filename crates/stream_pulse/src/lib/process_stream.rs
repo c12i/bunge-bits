@@ -37,6 +37,7 @@ static OPENAI: LazyLock<OpenAiClient> = LazyLock::new(openai_dive::v1::api::Clie
 //  Parliament of Kenya Channel Stream URL
 const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChannel/streams";
 
+#[tracing::instrument]
 pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
     let client = &CLIENT;
     let ytdlp = YTDLP.as_ref()?;
@@ -143,6 +144,7 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[tracing::instrument]
 async fn summarize_chunk(
     chunk: String,
     context: Option<Arc<String>>,
@@ -192,6 +194,7 @@ Based on the transcript chunk, please summarize it based on the instructions you
     chat_completions_text_from_response(response)
 }
 
+#[tracing::instrument]
 async fn combine_summaries(
     summaries: Vec<String>,
     openai: &OpenAiClient,
@@ -224,6 +227,7 @@ Summaries:
     chat_completions_text_from_response(response)
 }
 
+#[tracing::instrument]
 pub fn chat_completions_text_from_response(
     response: ChatCompletionResponse,
 ) -> Result<String, anyhow::Error> {
