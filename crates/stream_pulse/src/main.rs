@@ -32,6 +32,7 @@ const CRON_EXPR: &str = "0 0 */12 * * *";
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
+    dotenvy::dotenv()?;
     init_tracing_subscriber()?;
 
     let mut scheduler = JobScheduler::new().await?;

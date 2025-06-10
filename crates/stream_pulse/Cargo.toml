@@ -35,3 +35,4 @@ tracing-subscriber = { version = "0.3", features = [
   "registry",
 ] }
 tracing-bunyan-formatter = "0.3"
+dotenvy = "0.15.7"
