@@ -6,7 +6,6 @@ use std::{
 };
 
 use anyhow::{anyhow, Context};
-use futures::TryFutureExt;
 use openai_dive::v1::{
     api::Client as OpenAiClient,
     models::Gpt4Engine,
@@ -118,7 +117,7 @@ fn handle_stream_audio(
     // Split downloaded audio to chunks
     ytdlp.split_audio_to_chunks(
         audio_out_path,
-        1800,
+        900,
         chunked_audio_path.join(format!("{}_%03d.mp3", stream.video_id)),
     )?;
 
@@ -176,6 +175,12 @@ async fn transcribe_audio(
     let mut attempts = 0;
 
     loop {
+        tracing::info!(
+            "Transcribing audio from source {}. Attempt = {}",
+            audio_path.display(),
+            attempts
+        );
+
         attempts += 1;
         match openai.audio().create_transcription(params.clone()).await {
             Ok(result) => {
@@ -186,6 +191,7 @@ async fn transcribe_audio(
                         return Err(anyhow::anyhow!("Received JSON error instead of transcription after {attempts} attempts"));
                     }
                 } else {
+                    tracing::info!("Transcription success: {}", audio_path.display());
                     return Ok(result);
                 }
             }
