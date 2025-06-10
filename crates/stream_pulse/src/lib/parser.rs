@@ -23,6 +23,7 @@ use crate::{error::Error, types::VideoRenderer};
 /// # Returns
 /// * `Ok(Vec<Stream>)` containing all successfully parsed streams.
 /// * `Err(YtScrapeError)` if the JSON structure is unexpected or parsing fails.
+#[tracing::instrument(skip(json))]
 pub fn parse_streams(json: &Value) -> Result<Vec<Stream>, Error> {
     let mut streams = Vec::new();
 
