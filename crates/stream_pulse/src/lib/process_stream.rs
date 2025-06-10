@@ -24,14 +24,12 @@ use openai_dive::v1::{
 use rayon::prelude::*;
 use stream_datastore::{DataStore, Stream};
 use stream_digest::summarize_linear;
-use ytdlp_bindings::{AudioProcessor, YtDlp, YtDlpError};
+use ytdlp_bindings::{AudioProcessor, YtDlp};
 
 use crate::{extract_json_from_script, parse_streams};
 
 static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
-
-static YTDLP: LazyLock<Result<YtDlp, YtDlpError>> = LazyLock::new(YtDlp::new);
-
+static YTDLP: LazyLock<YtDlp> = LazyLock::new(|| YtDlp::new().expect("Failed to initialize YtDlp"));
 static OPENAI: LazyLock<OpenAiClient> = LazyLock::new(openai_dive::v1::api::Client::new_from_env);
 
 //  Parliament of Kenya Channel Stream URL
@@ -40,21 +38,19 @@ const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChan
 #[tracing::instrument]
 pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
     let client = &CLIENT;
-    let ytdlp = YTDLP.as_ref()?;
+    let ytdlp = &YTDLP;
     let openai = &OPENAI;
 
     let db = DataStore::new("bunge-bits-store.db").context("Failed to connect to database")?;
 
-    let response = client.get(YOUTUBE_STREAM_URL).send().await?.text().await?;
-
-    match extract_json_from_script(&response) {
+    let yt_html_document = client.get(YOUTUBE_STREAM_URL).send().await?.text().await?;
+    match extract_json_from_script(&yt_html_document) {
         Ok(json) => {
             let mut streams = parse_streams(&json)?;
+            tracing::info!("Processing `{}` streams", streams.len());
 
             // This is where initially downloaded audio by yt-dlp is saved
             let audio_download_path = PathBuf::from("/var/tmp/bunge-bits/audio");
-            // This is were ausosubs are stored
-            let autosub_path = PathBuf::from("/var/tmp/bunge-bits/autosub");
 
             // sort by upload date
             streams.sort_by(|a, b| {
@@ -70,59 +66,13 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
                 })
                 .collect::<Vec<Stream>>();
 
-            streams.par_iter_mut().try_for_each(|stream| {
-                let youtube_stream = format!("https://youtube.com/watch?v={}", stream.video_id);
-
-                let mut audio_out_path = audio_download_path.join(&stream.video_id);
-                let vtt_output_path = autosub_path.join(&stream.video_id);
-                // This is the directory we store the chunked audio files
-                let chunked_audio_path =
-                    PathBuf::from(format!("/var/tmp/bunge-bits/audio/{}", stream.video_id));
-
-                // Download autosub
-                ytdlp.download_auto_sub(&youtube_stream, &vtt_output_path)?;
-
-                // Download audio file with yt-dlp
-                ytdlp.download_audio(&youtube_stream, &audio_out_path)?;
-
-                // set mp3 extension
-                audio_out_path.set_extension("mp3");
-
-                // create nested `/stream.id/` dir
-                create_dir_all(&chunked_audio_path).expect("Failed to create directories");
-
-                // Split downloaded audio to chunks
-                ytdlp.split_audio_to_chunks(
-                    audio_out_path,
-                    1800,
-                    chunked_audio_path.join(format!("{}_%03d.mp3", stream.video_id)),
-                )?;
-
-                Ok::<_, anyhow::Error>(())
+            streams[0..1].par_iter_mut().try_for_each(|stream| {
+                handle_stream_audio(stream, audio_download_path.clone(), ytdlp)
             })?;
 
+            transcribe_streams(&streams, &openai).await?;
+
             for stream in streams.iter() {
-                let audio_chunks_path =
-                    PathBuf::from(format!("/var/tmp/bunge-bits/audio/{}", stream.video_id));
-                let mut transcript_file = OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open(format!("/var/tmp/bunge-bits/{}.txt", stream.video_id))?;
-
-                for file in std::fs::read_dir(&audio_chunks_path).context("Failed to read dir")? {
-                    let file = file.context("Failed to get file")?;
-                    let params = AudioTranscriptionParametersBuilder::default()
-                        .file(FileUpload::File(format!("{:?}", file.path())))
-                        .model(WhisperEngine::Whisper1.to_string())
-                        .response_format(AudioOutputFormat::Srt)
-                        .build()?;
-                    let transcription = openai.audio().create_transcription(params).await?;
-                    write!(transcript_file, "{}", transcription)?;
-                    writeln!(transcript_file, "----END_OF_CHUNK----")?;
-                }
-            }
-
-            for stream in streams {
                 let transcript = std::fs::read_to_string(format!(
                     "/var/tmp/bunge-bits/{}.txt",
                     stream.video_id
@@ -137,14 +87,86 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
             }
         }
         Err(e) => {
-            eprintln!("Error parsing streams: {}", e);
+            tracing::error!("Error parsing streams: {}", e);
         }
     }
 
     Ok(())
 }
 
-#[tracing::instrument]
+#[tracing::instrument(skip(stream, ytdlp))]
+fn handle_stream_audio(
+    stream: &mut Stream,
+    audio_download_path: PathBuf,
+    ytdlp: &YtDlp,
+) -> Result<(), anyhow::Error> {
+    let youtube_stream = format!("https://youtube.com/watch?v={}", stream.video_id);
+
+    let mut audio_out_path = audio_download_path.join(&stream.video_id);
+
+    // This is the directory we store the chunked audio files
+    let chunked_audio_path =
+        PathBuf::from(format!("/var/tmp/bunge-bits/audio/{}", stream.video_id));
+
+    // Download audio file with yt-dlp
+    ytdlp.download_audio(&youtube_stream, &audio_out_path)?;
+
+    // set mp3 extension
+    audio_out_path.set_extension("mp3");
+
+    // create nested `/stream.id/` dir
+    create_dir_all(&chunked_audio_path).expect("Failed to create directories");
+
+    // Split downloaded audio to chunks
+    ytdlp.split_audio_to_chunks(
+        audio_out_path,
+        1800,
+        chunked_audio_path.join(format!("{}_%03d.mp3", stream.video_id)),
+    )?;
+
+    Ok(())
+}
+
+#[tracing::instrument(skip(streams, openai))]
+async fn transcribe_streams(
+    streams: &Vec<Stream>,
+    openai: &OpenAiClient,
+) -> Result<(), anyhow::Error> {
+    for stream in streams.iter() {
+        let audio_chunks_path =
+            PathBuf::from(format!("/var/tmp/bunge-bits/audio/{}", stream.video_id));
+        let mut transcript_file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(format!("/var/tmp/bunge-bits/{}.txt", stream.video_id))?;
+
+        for file in std::fs::read_dir(&audio_chunks_path).context("Failed to read dir")? {
+            let file = file.context("Failed to get file")?;
+            let transcription = transcribe_audio(file.path(), &openai).await?;
+            write!(transcript_file, "{}", transcription)?;
+            writeln!(transcript_file, "----END_OF_CHUNK----")?;
+        }
+    }
+
+    Ok(())
+}
+
+#[tracing::instrument(skip(openai))]
+async fn transcribe_audio(
+    audio_path: PathBuf,
+    openai: &OpenAiClient,
+) -> Result<String, anyhow::Error> {
+    let params = AudioTranscriptionParametersBuilder::default()
+        .file(FileUpload::File(format!("{:?}", audio_path)))
+        .model(WhisperEngine::Whisper1.to_string())
+        .response_format(AudioOutputFormat::Srt)
+        .build()?;
+    let transcription = openai.audio().create_transcription(params).await?;
+
+    Ok(transcription)
+}
+
+#[tracing::instrument(skip(openai))]
 async fn summarize_chunk(
     chunk: String,
     context: Option<Arc<String>>,
@@ -194,7 +216,7 @@ Based on the transcript chunk, please summarize it based on the instructions you
     chat_completions_text_from_response(response)
 }
 
-#[tracing::instrument]
+#[tracing::instrument(skip(openai))]
 async fn combine_summaries(
     summaries: Vec<String>,
     openai: &OpenAiClient,
