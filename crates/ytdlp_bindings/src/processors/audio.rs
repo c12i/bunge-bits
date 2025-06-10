@@ -14,7 +14,7 @@ pub trait AudioProcessor {
     /// # Arguments
     ///
     /// * `file_input_path` - The path to the downloaded audio file.
-    /// * `segment_time` - The duration of segments to split the audio file by in seconds
+    /// * `segment_time_s` - The duration of segments to split the audio file by in seconds
     /// * `out_template` - Path/ template string of the split audio files
     ///
     /// # Errors
@@ -23,7 +23,7 @@ pub trait AudioProcessor {
     fn split_audio_to_chunks(
         &self,
         file_input_path: impl AsRef<Path>,
-        segment_time: u16,
+        segment_time_s: u16,
         out_template: impl AsRef<Path>,
     ) -> Result<(), YtDlpError>;
 }
@@ -32,7 +32,7 @@ impl AudioProcessor for YtDlp {
     fn split_audio_to_chunks(
         &self,
         file_input_path: impl AsRef<Path>,
-        segment_time: u16,
+        segment_time_s: u16,
         output_template: impl AsRef<Path>,
     ) -> Result<(), YtDlpError> {
         let input_str = file_input_path.as_ref().to_str().ok_or_else(|| {
@@ -48,7 +48,7 @@ impl AudioProcessor for YtDlp {
             "-f",
             "segment",
             "-segment_time",
-            &segment_time.to_string(),
+            &segment_time_s.to_string(),
             "-ac",
             "1",
             "-b:a",
