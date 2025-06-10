@@ -49,8 +49,14 @@ impl AudioProcessor for YtDlp {
             "segment",
             "-segment_time",
             &segment_time.to_string(),
-            "-c",
-            "copy",
+            "-ac",
+            "1",
+            "-b:a",
+            "64k",
+            "-ar",
+            "16000",
+            "-c:a",
+            "libmp3lame",
             output_str,
         ])
     }
