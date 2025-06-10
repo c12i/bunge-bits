@@ -66,7 +66,8 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
                 .filter(|stream| !db.stream_exists(&stream.video_id).unwrap_or(false))
                 .collect::<Vec<Stream>>();
 
-            streams[0..1].par_iter_mut().try_for_each(|stream| {
+            // XXX: Revert to take all
+            streams.par_iter_mut().take(1).try_for_each(|stream| {
                 handle_stream_audio(stream, audio_download_path.clone(), ytdlp)
             })?;
 
@@ -144,9 +145,16 @@ async fn transcribe_streams(
         entries.sort_by_key(|entry| entry.path());
 
         for entry in entries {
-            let transcription = transcribe_audio(entry.path(), openai).await?;
-            write!(transcript_file, "{}", transcription)?;
-            writeln!(transcript_file, "----END_OF_CHUNK----")?;
+            match transcribe_audio(entry.path(), openai).await {
+                Ok(transcription) => {
+                    write!(transcript_file, "{}", transcription)?;
+                    writeln!(transcript_file, "----END_OF_CHUNK----")?;
+                }
+                Err(err) => {
+                    tracing::error!("Skipping failed chunk {:?}: {:?}", entry.path(), err);
+                    return Err(err);
+                }
+            }
         }
     }
 
@@ -164,13 +172,33 @@ async fn transcribe_audio(
         .response_format(AudioOutputFormat::Text)
         .build()?;
 
-    let transcription = openai
-        .audio()
-        .create_transcription(params)
-        .inspect_err(|e| tracing::error!("Failed to call transcription API: {e:?}"))
-        .await?;
+    let max_retries = 3;
+    let mut attempts = 0;
 
-    Ok(transcription)
+    loop {
+        attempts += 1;
+        match openai.audio().create_transcription(params.clone()).await {
+            Ok(result) => {
+                //XXX: Very basic check that it’s not a JSON error disguised as a string
+                if result.trim_start().starts_with('{') {
+                    tracing::warn!("Received unexpected JSON: {result}");
+                    if attempts >= max_retries {
+                        return Err(anyhow::anyhow!("Received JSON error instead of transcription after {attempts} attempts"));
+                    }
+                } else {
+                    return Ok(result);
+                }
+            }
+            Err(err) => {
+                tracing::warn!("Attempt {attempts} failed for {:?}: {err:?}", audio_path);
+                if attempts >= max_retries {
+                    return Err(anyhow::anyhow!("Failed after {attempts} attempts: {err}"));
+                }
+            }
+        }
+
+        tokio::time::sleep(std::time::Duration::from_secs(2_u64.pow(attempts))).await;
+    }
 }
 
 #[tracing::instrument(skip(openai))]
