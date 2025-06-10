@@ -34,6 +34,8 @@ static OPENAI: LazyLock<OpenAiClient> = LazyLock::new(openai_dive::v1::api::Clie
 
 //  Parliament of Kenya Channel Stream URL
 const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChannel/streams";
+// Work directory - basically where all artifacts will be stored
+const WORKDIR: &str = "/var/tmp/bunge-bits";
 
 #[tracing::instrument]
 pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
@@ -50,7 +52,7 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
             tracing::info!("Processing `{}` streams", streams.len());
 
             // This is where initially downloaded audio by yt-dlp is saved
-            let audio_download_path = PathBuf::from("/var/tmp/bunge-bits/audio");
+            let audio_download_path = PathBuf::from(format!("{WORKDIR}/audio"));
 
             // sort by upload date
             streams.sort_by(|a, b| {
@@ -60,10 +62,7 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
 
             let mut streams = streams
                 .into_iter()
-                .filter(|stream| match db.stream_exists(&stream.video_id) {
-                    Ok(exists) => !exists,
-                    Err(_) => false,
-                })
+                .filter(|stream| !db.stream_exists(&stream.video_id).unwrap_or(false))
                 .collect::<Vec<Stream>>();
 
             streams[0..1].par_iter_mut().try_for_each(|stream| {
@@ -73,10 +72,8 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
             transcribe_streams(&streams, openai).await?;
 
             for stream in streams.iter() {
-                let transcript = std::fs::read_to_string(format!(
-                    "/var/tmp/bunge-bits/{}.txt",
-                    stream.video_id
-                ))?;
+                let transcript =
+                    std::fs::read_to_string(format!("{WORKDIR}/{}.txt", stream.video_id))?;
                 summarize_linear(
                     &transcript,
                     "----END_OF_CHUNK----",
@@ -105,8 +102,7 @@ fn handle_stream_audio(
     let mut audio_out_path = audio_download_path.join(&stream.video_id);
 
     // This is the directory we store the chunked audio files
-    let chunked_audio_path =
-        PathBuf::from(format!("/var/tmp/bunge-bits/audio/{}", stream.video_id));
+    let chunked_audio_path = PathBuf::from(format!("{WORKDIR}/audio/{}", stream.video_id));
 
     // Download audio file with yt-dlp
     ytdlp.download_audio(&youtube_stream, &audio_out_path)?;
@@ -133,12 +129,11 @@ async fn transcribe_streams(
     openai: &OpenAiClient,
 ) -> Result<(), anyhow::Error> {
     for stream in streams.iter() {
-        let audio_chunks_path =
-            PathBuf::from(format!("/var/tmp/bunge-bits/audio/{}", stream.video_id));
+        let audio_chunks_path = PathBuf::from(format!("{WORKDIR}/audio/{}", stream.video_id));
         let mut transcript_file = OpenOptions::new()
             .create(true)
             .append(true)
-            .open(format!("/var/tmp/bunge-bits/{}.txt", stream.video_id))?;
+            .open(format!("{WORKDIR}/{}.txt", stream.video_id))?;
 
         for file in std::fs::read_dir(&audio_chunks_path).context("Failed to read dir")? {
             let file = file.context("Failed to get file")?;
@@ -249,7 +244,7 @@ Summaries:
     chat_completions_text_from_response(response)
 }
 
-#[tracing::instrument]
+#[tracing::instrument(skip(response))]
 pub fn chat_completions_text_from_response(
     response: ChatCompletionResponse,
 ) -> Result<String, anyhow::Error> {
