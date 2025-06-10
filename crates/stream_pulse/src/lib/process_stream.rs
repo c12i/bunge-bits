@@ -70,7 +70,7 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
                 handle_stream_audio(stream, audio_download_path.clone(), ytdlp)
             })?;
 
-            transcribe_streams(&streams, &openai).await?;
+            transcribe_streams(&streams, openai).await?;
 
             for stream in streams.iter() {
                 let transcript = std::fs::read_to_string(format!(
@@ -129,7 +129,7 @@ fn handle_stream_audio(
 
 #[tracing::instrument(skip(streams, openai))]
 async fn transcribe_streams(
-    streams: &Vec<Stream>,
+    streams: &[Stream],
     openai: &OpenAiClient,
 ) -> Result<(), anyhow::Error> {
     for stream in streams.iter() {
@@ -142,7 +142,7 @@ async fn transcribe_streams(
 
         for file in std::fs::read_dir(&audio_chunks_path).context("Failed to read dir")? {
             let file = file.context("Failed to get file")?;
-            let transcription = transcribe_audio(file.path(), &openai).await?;
+            let transcription = transcribe_audio(file.path(), openai).await?;
             write!(transcript_file, "{}", transcription)?;
             writeln!(transcript_file, "----END_OF_CHUNK----")?;
         }
