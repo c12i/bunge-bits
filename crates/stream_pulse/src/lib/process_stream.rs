@@ -6,6 +6,7 @@ use std::{
 };
 
 use anyhow::{anyhow, Context};
+use futures::TryFutureExt;
 use openai_dive::v1::{
     api::Client as OpenAiClient,
     models::Gpt4Engine,
@@ -135,9 +136,15 @@ async fn transcribe_streams(
             .append(true)
             .open(format!("{WORKDIR}/{}.txt", stream.video_id))?;
 
-        for file in std::fs::read_dir(&audio_chunks_path).context("Failed to read dir")? {
-            let file = file.context("Failed to get file")?;
-            let transcription = transcribe_audio(file.path(), openai).await?;
+        let mut entries: Vec<_> = std::fs::read_dir(&audio_chunks_path)
+            .context("Failed to read dir")?
+            .collect::<Result<_, _>>()
+            .context("Failed to collect dir entries")?;
+
+        entries.sort_by_key(|entry| entry.path());
+
+        for entry in entries {
+            let transcription = transcribe_audio(entry.path(), openai).await?;
             write!(transcript_file, "{}", transcription)?;
             writeln!(transcript_file, "----END_OF_CHUNK----")?;
         }
@@ -152,11 +159,16 @@ async fn transcribe_audio(
     openai: &OpenAiClient,
 ) -> Result<String, anyhow::Error> {
     let params = AudioTranscriptionParametersBuilder::default()
-        .file(FileUpload::File(format!("{:?}", audio_path)))
+        .file(FileUpload::File(format!("{}", audio_path.display())))
         .model(WhisperEngine::Whisper1.to_string())
-        .response_format(AudioOutputFormat::Srt)
+        .response_format(AudioOutputFormat::Text)
         .build()?;
-    let transcription = openai.audio().create_transcription(params).await?;
+
+    let transcription = openai
+        .audio()
+        .create_transcription(params)
+        .inspect_err(|e| tracing::error!("Failed to call transcription API: {e:?}"))
+        .await?;
 
     Ok(transcription)
 }
@@ -206,7 +218,11 @@ Based on the transcript chunk, please summarize it based on the instructions you
         ])
         .response_format(ChatCompletionResponseFormat::Text)
         .build()?;
-    let response = openai.chat().create(parameters).await?;
+    let response = openai
+        .chat()
+        .create(parameters)
+        .await
+        .inspect_err(|e| tracing::error!("Failed to call chat completion API: {e:?}"))?;
 
     chat_completions_text_from_response(response)
 }
@@ -239,7 +255,11 @@ Summaries:
         .response_format(ChatCompletionResponseFormat::Text)
         .build()?;
 
-    let response = openai.chat().create(parameters).await?;
+    let response = openai
+        .chat()
+        .create(parameters)
+        .await
+        .inspect_err(|e| tracing::error!("Failed to call chat completion API: {e:?}"))?;
 
     chat_completions_text_from_response(response)
 }
