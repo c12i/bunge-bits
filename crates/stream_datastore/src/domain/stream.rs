@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use chrono::{DateTime, Duration, Utc};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Stream {
     pub video_id: String,
     pub title: String,
