@@ -72,7 +72,7 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
 
             transcribe_streams(&streams, openai).await?;
 
-            for stream in streams.iter() {
+            for stream in streams.iter().take(1) {
                 let transcript =
                     std::fs::read_to_string(format!("{WORKDIR}/{}.txt", stream.video_id))?;
                 summarize_linear(
@@ -97,7 +97,7 @@ fn handle_stream_audio(
     stream: &mut Stream,
     audio_download_path: PathBuf,
     ytdlp: &YtDlp,
-) -> Result<(), anyhow::Error> {
+) -> anyhow::Result<()> {
     let youtube_stream = format!("https://youtube.com/watch?v={}", stream.video_id);
 
     let mut audio_out_path = audio_download_path.join(&stream.video_id);
@@ -125,11 +125,8 @@ fn handle_stream_audio(
 }
 
 #[tracing::instrument(skip(streams, openai))]
-async fn transcribe_streams(
-    streams: &[Stream],
-    openai: &OpenAiClient,
-) -> Result<(), anyhow::Error> {
-    for stream in streams.iter() {
+async fn transcribe_streams(streams: &[Stream], openai: &OpenAiClient) -> anyhow::Result<()> {
+    for stream in streams.iter().take(1) {
         let audio_chunks_path = PathBuf::from(format!("{WORKDIR}/audio/{}", stream.video_id));
         let mut transcript_file = OpenOptions::new()
             .create(true)
@@ -141,6 +138,8 @@ async fn transcribe_streams(
             .collect::<Result<_, _>>()
             .context("Failed to collect dir entries")?;
 
+        // fs::read_dir doesn't guarantee sorted dir contents, hence the need to
+        // perform lexicographic sorting
         entries.sort_by_key(|entry| entry.path());
 
         for entry in entries {
@@ -161,10 +160,7 @@ async fn transcribe_streams(
 }
 
 #[tracing::instrument(skip(openai))]
-async fn transcribe_audio(
-    audio_path: PathBuf,
-    openai: &OpenAiClient,
-) -> Result<String, anyhow::Error> {
+async fn transcribe_audio(audio_path: PathBuf, openai: &OpenAiClient) -> anyhow::Result<String> {
     let params = AudioTranscriptionParametersBuilder::default()
         .file(FileUpload::File(format!("{}", audio_path.display())))
         .model(WhisperEngine::Whisper1.to_string())
@@ -212,7 +208,7 @@ async fn summarize_chunk(
     chunk: String,
     context: Option<Arc<String>>,
     openai: &OpenAiClient,
-) -> Result<String, anyhow::Error> {
+) -> anyhow::Result<String> {
     let user_prompt = context.map(|ctx| {
         format!(
             r#"
@@ -265,7 +261,7 @@ Based on the transcript chunk, please summarize it based on the instructions you
 async fn combine_summaries(
     summaries: Vec<String>,
     openai: &OpenAiClient,
-) -> Result<String, anyhow::Error> {
+) -> anyhow::Result<String> {
     let summaries = summaries.join("\n");
 
     let parameters = ChatCompletionParametersBuilder::default()
@@ -301,7 +297,7 @@ Summaries:
 #[tracing::instrument(skip(response))]
 pub fn chat_completions_text_from_response(
     response: ChatCompletionResponse,
-) -> Result<String, anyhow::Error> {
+) -> anyhow::Result<String> {
     let response = response
         .choices
         .first()
