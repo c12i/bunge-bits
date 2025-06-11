@@ -5,7 +5,7 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
-use anyhow::{anyhow, Context};
+use anyhow::{bail, Context};
 use openai_dive::v1::{
     api::Client as OpenAiClient,
     models::Gpt4Engine,
@@ -36,6 +36,7 @@ static OPENAI: LazyLock<OpenAiClient> = LazyLock::new(openai_dive::v1::api::Clie
 const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChannel/streams";
 // Work directory - basically where all artifacts will be stored
 const WORKDIR: &str = "/var/tmp/bunge-bits";
+const TRANSCRIPT_CHUNK_DELIMITER: &str = "----END_OF_CHUNK----";
 
 #[tracing::instrument]
 pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
@@ -77,7 +78,7 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
                     std::fs::read_to_string(format!("{WORKDIR}/{}.txt", stream.video_id))?;
                 summarize_linear(
                     &transcript,
-                    "----END_OF_CHUNK----",
+                    TRANSCRIPT_CHUNK_DELIMITER,
                     |chunk, ctx| Box::pin(async move { summarize_chunk(chunk, ctx, openai).await }),
                     |summaries| Box::pin(async move { combine_summaries(summaries, openai).await }),
                 )
@@ -85,7 +86,7 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
             }
         }
         Err(e) => {
-            tracing::error!("Error parsing streams: {}", e);
+            tracing::error!(error = ?e,  "Error parsing streams");
         }
     }
 
@@ -146,10 +147,10 @@ async fn transcribe_streams(streams: &[Stream], openai: &OpenAiClient) -> anyhow
             match transcribe_audio(entry.path(), openai).await {
                 Ok(transcription) => {
                     write!(transcript_file, "{}", transcription)?;
-                    writeln!(transcript_file, "----END_OF_CHUNK----")?;
+                    writeln!(transcript_file, "{}", TRANSCRIPT_CHUNK_DELIMITER)?;
                 }
                 Err(err) => {
-                    tracing::error!("Skipping failed chunk {:?}: {:?}", entry.path(), err);
+                    tracing::error!(error = ?err, "Skipping failed chunk {}", entry.path().display());
                     return Err(err);
                 }
             }
@@ -194,7 +195,7 @@ async fn transcribe_audio(audio_path: PathBuf, openai: &OpenAiClient) -> anyhow:
             Err(err) => {
                 tracing::warn!("Attempt {attempts} failed for {:?}: {err:?}", audio_path);
                 if attempts >= max_retries {
-                    return Err(anyhow::anyhow!("Failed after {attempts} attempts: {err}"));
+                    bail!("Failed after {attempts} attempts: {err}");
                 }
             }
         }
@@ -252,7 +253,7 @@ Based on the transcript chunk, please summarize it based on the instructions you
         .chat()
         .create(parameters)
         .await
-        .inspect_err(|e| tracing::error!("Failed to call chat completion API: {e:?}"))?;
+        .inspect_err(|e| tracing::error!(error = ?e, "Failed to call chat completion API"))?;
 
     chat_completions_text_from_response(response)
 }
@@ -289,7 +290,7 @@ Summaries:
         .chat()
         .create(parameters)
         .await
-        .inspect_err(|e| tracing::error!("Failed to call chat completion API: {e:?}"))?;
+        .inspect_err(|e| tracing::error!(error = ?e, "Failed to call chat completion API"))?;
 
     chat_completions_text_from_response(response)
 }
@@ -309,13 +310,13 @@ pub fn chat_completions_text_from_response(
             if let Some(content) = content {
                 match content {
                     ChatMessageContent::Text(text) => text,
-                    c => return Err(anyhow!("Unexpcted chat message content: {:?}", c)),
+                    c => bail!("Unexpcted chat message content: {:?}", c),
                 }
             } else {
-                return Err(anyhow!("Unexpected absence of chage message content"));
+                bail!("Unexpected absence of chage message content");
             }
         }
-        c => return Err(anyhow!("Unexpcted chat message response: {:?}", c)),
+        c => bail!("Unexpcted chat message response: {:?}", c),
     };
 
     Ok(response)

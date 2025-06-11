@@ -11,7 +11,7 @@ pub struct DataStore {
 impl DataStore {
     pub fn new<P: AsRef<Path>>(database_path: P) -> anyhow::Result<Self> {
         let conn = Connection::open(database_path)
-            .inspect_err(|e| tracing::error!("Failed to open connection to db: {e:?}"))
+            .inspect_err(|e| tracing::error!(error = ?e, "Failed to open connection to db"))
             .map_err(|e| anyhow!("Failed to connect to database: {}", e))?;
 
         // Create the streams table
@@ -29,7 +29,7 @@ impl DataStore {
             "#,
             [],
         )
-        .inspect_err(|e| tracing::error!("Failed to create table: {e:?}"))
+        .inspect_err(|e| tracing::error!(error = ?e, "Failed to create table"))
         .map_err(|e| anyhow!("Failed to create streams table: {}", e))?;
 
         Ok(DataStore { conn })
@@ -65,7 +65,7 @@ impl DataStore {
                     &stream.closed_captions_summary,
                 ],
             )
-            .inspect_err(|e| tracing::error!("Failed to execute query: {e:?}"));
+            .inspect_err(|e| tracing::error!(error = ?e, "Failed to execute query"));
 
         match result {
             Ok(_) => Ok(()),
@@ -86,7 +86,7 @@ impl DataStore {
                 params![video_id],
                 |row| row.get(0),
             )
-            .inspect_err(|e| tracing::error!("Failed to execute query: {e:?}"))
+            .inspect_err(|e| tracing::error!(error = ?e, "Failed to execute query"))
             .context("Failed to check if stream exists")?;
 
         Ok(count > 0)
@@ -127,7 +127,7 @@ impl DataStore {
                         &stream.closed_captions_summary,
                     ],
                 )
-                .inspect_err(|e| tracing::error!("Failed to execute query: {e:?}"));
+                .inspect_err(|e| tracing::error!(error = ?e, "Failed to execute query"));
 
             match result {
                 Ok(_) => successful_inserts += 1,
@@ -149,7 +149,7 @@ impl DataStore {
         }
 
         tx.commit()
-            .inspect_err(|e| tracing::error!("Failed to commit transaction: {e:?}"))?;
+            .inspect_err(|e| tracing::error!(error = ?e, "Failed to commit transaction"))?;
 
         Ok(BulkInsertResult {
             successful_inserts,
@@ -174,7 +174,7 @@ impl DataStore {
                     })
                 },
             )
-            .inspect_err(|e| tracing::error!("Failed to execute query: {e:?}"));
+            .inspect_err(|e| tracing::error!(error = ?e, "Failed to execute query"));
 
         match result {
             Ok(stream) => Ok(Some(stream)),
@@ -202,7 +202,7 @@ impl DataStore {
                     &stream.video_id,
                 ],
             )
-            .inspect_err(|e| tracing::error!("Failed to execute query: {e:?}"))
+            .inspect_err(|e| tracing::error!(error = ?e, "Failed to execute query"))
             .context("Failed to update stream")?;
 
         Ok(())
@@ -211,7 +211,7 @@ impl DataStore {
     pub fn delete_stream(&self, video_id: &str) -> anyhow::Result<()> {
         self.conn
             .execute("DELETE FROM streams WHERE video_id = ?", params![video_id])
-            .inspect_err(|e| tracing::error!("Failed to execute query: {e:?}"))
+            .inspect_err(|e| tracing::error!(error = ?e, "Failed to execute query"))
             .context("Failed to delete stream")?;
 
         Ok(())
@@ -221,7 +221,7 @@ impl DataStore {
         let mut stmt = self
             .conn
             .prepare("SELECT * FROM streams ORDER BY stream_timestamp DESC")
-            .inspect_err(|e| tracing::error!("Failed to prepare query: {e:?}"))?;
+            .inspect_err(|e| tracing::error!(error = ?e, "Failed to prepare query"))?;
         let stream_iter = stmt.query_map([], |row| {
             Ok(Stream {
                 video_id: row.get(0)?,
