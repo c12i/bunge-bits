@@ -4,15 +4,15 @@ use anyhow::Error;
 use sliding_window::SlidingWindow;
 use std::{future::Future, pin::Pin, sync::Arc};
 
-/// Summarizes a VTT/ transcript (Video Text Tracks) string using a sliding window approach.
+/// Summarizes a transcript chunk string using a sliding window approach.
 ///
-/// This function processes the input VTT/ transcript string by sliding a window over its content,
+/// This function processes the input transcript string by sliding a window over its content,
 /// summarizing each chunk, and then combining these summaries into a final result.
 ///
 /// # Arguments
 ///
-/// * `vtt` - A `String` containing the VTT/ transcript content to be summarized.
-/// * `summarize_chunk` - A function that summarizes a chunk of the VTT/ transcript content.
+/// * `chunk` - A `String` containing the transcript chunk to be summarized.
+/// * `summarize_chunk` - A function that summarizes a chunk of the transcript content.
 ///   It takes two parameters:
 ///   - A `String` representing the current window of text to summarize.
 ///   - An `Arc<String>` containing the context from previous summaries.
@@ -44,7 +44,7 @@ use std::{future::Future, pin::Pin, sync::Arc};
 /// The window size, slide size, and context size are determined by constants defined in the
 /// `SlidingWindow` implementation.
 pub async fn summarize_with_sliding_window<FnSummary, FnCombine>(
-    vtt: &str,
+    chunk: &str,
     summarize_chunk: FnSummary,
     combine_summaries: FnCombine,
 ) -> Result<String, Error>
@@ -55,7 +55,7 @@ where
     ) -> Pin<Box<dyn Future<Output = Result<String, Error>> + Send>>,
     FnCombine: Fn(Vec<String>) -> Pin<Box<dyn Future<Output = Result<String, Error>> + Send>>,
 {
-    let mut window = SlidingWindow::new(vtt);
+    let mut window = SlidingWindow::new(chunk);
     let mut summaries = Vec::new();
 
     loop {
@@ -73,17 +73,17 @@ where
     combine_summaries(summaries).await
 }
 
-/// Summarizes a VTT (Video Text Tracks)/ transcript string using a linear sequential approach.
+/// Summarizes a transcript chunk string using a linear sequential approach.
 ///
-/// This function processes the input VTT/ transcript string by splitting it into chunks based on a delimiter,
+/// This function processes the input transcript string by splitting it into chunks based on a delimiter,
 /// summarizing each chunk sequentially while maintaining context from previous summaries,
 /// and then combining these summaries into a final result.
 ///
 /// # Arguments
 ///
-/// * `vtt` - A string slice containing the VTT/ transcript content to be summarized.
-/// * `delimiter` - A string slice used to split the VTT/ transcript content into chunks.
-/// * `summarize_chunk` - A function that summarizes a chunk of the VTT/ transcript content.
+/// * `chunk` - A string slice containing the transcript content to be summarized.
+/// * `delimiter` - A string slice used to split the transcript content into chunks.
+/// * `summarize_chunk` - A function that summarizes a chunk of the transcript content.
 ///   It takes two parameters:
 ///   - A `String` representing the current chunk of text to summarize.
 ///   - An `Option<Arc<String>>` containing the context from the previous summary (None for the first chunk).
@@ -116,7 +116,7 @@ where
 /// - Uses a delimiter to split the input rather than fixed-size windows
 /// - Passes the entire previous summary as context rather than a fixed context size
 pub async fn summarize_linear<FnSummary, FnCombine>(
-    vtt: &str,
+    chunk: &str,
     delimiter: &str,
     summarize_chunk: FnSummary,
     combine_summaries: FnCombine,
@@ -128,12 +128,18 @@ where
     ) -> Pin<Box<dyn Future<Output = Result<String, Error>> + Send>>,
     FnCombine: Fn(Vec<String>) -> Pin<Box<dyn Future<Output = Result<String, Error>> + Send>>,
 {
-    let contents = vtt.split(delimiter);
+    let contents = chunk.split(delimiter);
     let mut summaries = Vec::new();
     let mut context = None;
 
     for chunk in contents {
-        let summary = summarize_chunk(chunk.to_owned(), context.to_owned()).await?;
+        let chunk = chunk.trim();
+
+        if chunk.is_empty() {
+            continue;
+        }
+
+        let summary = summarize_chunk(chunk.to_owned(), context.clone()).await?;
 
         context = Some(Arc::new(match context {
             Some(current_context) => format!("{}\n{}", *current_context, summary),
