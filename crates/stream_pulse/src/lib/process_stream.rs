@@ -159,39 +159,41 @@ async fn transcribe_audio(audio_path: PathBuf, openai: &OpenAiClient) -> anyhow:
         .response_format(AudioOutputFormat::Text)
         .build()?;
 
-    let max_retries = 3;
-    let mut attempts = 0;
+    let max_retries = 5;
+    let mut attempt = 0;
 
     loop {
         tracing::info!(
-            "Transcribing audio from source {}. Attempt = {}",
+            attempt,
+            "Transcribing audio from source {}",
             audio_path.display(),
-            attempts
         );
 
-        attempts += 1;
+        attempt += 1;
         match openai.audio().create_transcription(params.clone()).await {
             Ok(result) => {
                 //XXX: Very basic check that it’s not a JSON error disguised as a string
                 if result.trim_start().starts_with('{') {
                     tracing::warn!("Received unexpected JSON: {result}");
-                    if attempts >= max_retries {
-                        return Err(anyhow::anyhow!("Received JSON error instead of transcription after {attempts} attempts"));
+                    if attempt >= max_retries {
+                        bail!(
+                            "Received JSON error instead of transcription after {attempt} attempts"
+                        );
                     }
                 } else {
-                    tracing::info!("Transcription success: {}", audio_path.display());
+                    tracing::info!("Transcription success for {}", audio_path.display());
                     return Ok(result);
                 }
             }
             Err(err) => {
-                tracing::warn!("Attempt {attempts} failed for {:?}: {err:?}", audio_path);
-                if attempts >= max_retries {
-                    bail!("Failed after {attempts} attempts: {err}");
+                tracing::warn!(attempt, error = ?err, "Transcription failed for {} (attempt ({}/{}))", audio_path.display(), attempt, max_retries);
+                if attempt >= max_retries {
+                    bail!("Failed after {attempt} attempts: {err}");
                 }
             }
         }
 
-        tokio::time::sleep(std::time::Duration::from_secs(2_u64.pow(attempts))).await;
+        tokio::time::sleep(std::time::Duration::from_secs(2_u64.pow(attempt))).await;
     }
 }
 
@@ -276,37 +278,38 @@ Based on the transcript chunk, please summarize it based on the instructions you
         .response_format(ChatCompletionResponseFormat::Text)
         .build()?;
 
-    let mut attempts = 0;
+    let mut attempt = 0;
     let max_attempts = 5;
 
     loop {
+        tracing::info!(attempt, "Summarizing chunk");
+
         match openai.chat().create(parameters.clone()).await {
             Ok(response) => break chat_completions_text_from_response(response),
             Err(err) => {
-                attempts += 1;
+                attempt += 1;
                 let err_str = format!("{:?}", err);
                 // In case of a 429 response, OpenAI will recommend a wait time
                 // we try to use the recommended wait time here, otherwise the fallback is used
                 let wait_ms = extract_wait_time_ms_from_error(&err_str).unwrap_or_else(|| {
-                    let fallback = 2_u64.pow(attempts) * 1000;
-                    tracing::warn!(
-                        attempts,
-                        "No wait time found, using fallback {}ms",
-                        fallback
-                    );
+                    let fallback = 2_u64.pow(attempt) * 1000;
+                    tracing::warn!(attempt, "No wait time found, using fallback {}ms", fallback);
                     fallback
                 });
 
-                if attempts >= max_attempts {
-                    tracing::error!(error = ?err, "Failed after {} attempts", attempts);
+                if attempt >= max_attempts {
+                    tracing::error!(error = ?err, "Failed after {} attempts", attempt);
                     return Err(err.into());
                 }
 
                 tracing::warn!(
-                    attempts,
+                    error = ?err,
+                    attempt,
                     wait_ms,
-                    "Rate limit hit or other error. Retrying after {}ms",
-                    wait_ms
+                    "Rate limit hit or other error. Retrying after {}ms (attempt {}/{})",
+                    wait_ms,
+                    attempt,
+                    max_attempts
                 );
 
                 tokio::time::sleep(std::time::Duration::from_millis(wait_ms)).await;
@@ -327,7 +330,7 @@ fn extract_wait_time_ms_from_error(err_msg: &str) -> Option<u64> {
     None
 }
 
-#[tracing::instrument(skip(openai))]
+#[tracing::instrument(skip(openai, summaries))]
 async fn combine_summaries(
     summaries: Vec<String>,
     openai: &OpenAiClient,
@@ -353,38 +356,36 @@ Summaries:
         .response_format(ChatCompletionResponseFormat::Text)
         .build()?;
 
-    let mut attempts = 0;
+    let mut attempt = 0;
     let max_attempts = 5;
 
     loop {
+        tracing::info!(attempt, "Combining summaries");
+
         match openai.chat().create(parameters.clone()).await {
             Ok(response) => break chat_completions_text_from_response(response),
             Err(err) => {
-                attempts += 1;
+                attempt += 1;
 
                 let err_str = format!("{:?}", err);
                 let wait_ms = extract_wait_time_ms_from_error(&err_str).unwrap_or_else(|| {
-                    let fallback = 2_u64.pow(attempts) * 1000;
-                    tracing::warn!(
-                        attempts,
-                        "No wait time found, using fallback {}ms",
-                        fallback
-                    );
+                    let fallback = 2_u64.pow(attempt) * 1000;
+                    tracing::warn!(attempt, "No wait time found, using fallback {}ms", fallback);
                     fallback
                 });
 
-                if attempts >= max_attempts {
-                    tracing::error!(error = ?err, "combine_summaries failed after {} attempts", attempts);
+                if attempt >= max_attempts {
+                    tracing::error!(error = ?err, "combine_summaries failed after {} attempts", attempt);
                     return Err(err.into());
                 }
 
                 tracing::warn!(
                     error = ?err,
                     wait_ms,
-                    attempts,
+                    attempt,
                     "Retrying combine_summaries after {}ms (attempt {}/{})",
                     wait_ms,
-                    attempts,
+                    attempt,
                     max_attempts
                 );
 
