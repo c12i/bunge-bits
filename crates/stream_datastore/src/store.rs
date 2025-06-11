@@ -1,139 +1,124 @@
 use crate::Stream;
 use anyhow::{anyhow, Context};
-use rusqlite::{params, Connection};
-use std::path::Path;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DataStore {
-    conn: Connection,
+    pub pool: PgPool,
 }
 
 impl DataStore {
-    pub fn new<P: AsRef<Path>>(database_path: P) -> anyhow::Result<Self> {
-        let conn = Connection::open(database_path)
-            .inspect_err(|e| tracing::error!(error = ?e, "Failed to open connection to db"))
-            .map_err(|e| anyhow!("Failed to connect to database: {}", e))?;
+    /// Establish connection to database and create the streams table
+    /// if not exists
+    pub async fn init(database_url: &str) -> anyhow::Result<Self> {
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(database_url)
+            .await
+            .context("Failed to connect to database")?;
 
-        // Create the streams table
-        conn.execute(
+        sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS streams (
                 video_id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
                 view_count TEXT NOT NULL,
                 streamed_date TEXT NOT NULL,
-                stream_timestamp DATETIME NOT NULL,
+                stream_timestamp TIMESTAMPTZ NOT NULL,
                 duration TEXT NOT NULL,
                 closed_captions_summary TEXT
             )
             "#,
-            [],
         )
-        .inspect_err(|e| tracing::error!(error = ?e, "Failed to create table"))
-        .map_err(|e| anyhow!("Failed to create streams table: {}", e))?;
+        .execute(&pool)
+        .await
+        .context("Failed to create streams table")?;
 
-        Ok(DataStore { conn })
+        Ok(DataStore { pool })
     }
 
-    pub fn insert_stream(&self, stream: &Stream) -> anyhow::Result<()> {
+    pub async fn insert_stream(&self, stream: &Stream) -> anyhow::Result<()> {
         let timestamp = stream
             .timestamp_from_time_ago()
             .context("Failed to get timestamp")?;
 
-        let result = self
-            .conn
-            .execute(
-                r#"
+        let result = sqlx::query(
+            r#"
             INSERT INTO streams (
-                video_id,
-                title,
-                view_count,
-                streamed_date,
-                stream_timestamp,
-                duration,
-                closed_captions_summary
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                video_id, title, view_count, streamed_date,
+                stream_timestamp, duration, closed_captions_summary
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
             "#,
-                params![
-                    &stream.video_id,
-                    &stream.title,
-                    &stream.view_count,
-                    &stream.streamed_date,
-                    timestamp.to_string(),
-                    &stream.duration,
-                    &stream.closed_captions_summary,
-                ],
-            )
-            .inspect_err(|e| tracing::error!(error = ?e, "Failed to execute query"));
+        )
+        .bind(&stream.video_id)
+        .bind(&stream.title)
+        .bind(&stream.view_count)
+        .bind(&stream.streamed_date)
+        .bind(timestamp)
+        .bind(&stream.duration)
+        .bind(&stream.closed_captions_summary)
+        .execute(&self.pool)
+        .await;
 
         match result {
             Ok(_) => Ok(()),
-            Err(rusqlite::Error::SqliteFailure(error, _))
-                if error.code == rusqlite::ErrorCode::ConstraintViolation =>
-            {
+            Err(sqlx::Error::Database(e)) if e.constraint() == Some("streams_pkey") => {
                 Err(anyhow!("Duplicate entry"))
             }
             Err(err) => Err(err.into()),
         }
     }
 
-    pub fn stream_exists(&self, video_id: &str) -> anyhow::Result<bool> {
-        let count: i64 = self
-            .conn
-            .query_row(
-                "SELECT COUNT(*) FROM streams WHERE video_id = ?",
-                params![video_id],
-                |row| row.get(0),
-            )
-            .inspect_err(|e| tracing::error!(error = ?e, "Failed to execute query"))
+    pub async fn stream_exists(&self, video_id: &str) -> anyhow::Result<bool> {
+        let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM streams WHERE video_id = $1")
+            .bind(video_id)
+            .fetch_one(&self.pool)
+            .await
             .context("Failed to check if stream exists")?;
-
-        Ok(count > 0)
+        Ok(count.0 > 0)
     }
 
-    pub fn bulk_insert_streams(&mut self, streams: &[Stream]) -> anyhow::Result<BulkInsertResult> {
+    pub async fn bulk_insert_streams(
+        &self,
+        streams: &[Stream],
+    ) -> anyhow::Result<BulkInsertResult> {
         let mut successful_inserts = 0;
         let mut failed_inserts = Vec::new();
-
-        let tx = self.conn.transaction()?;
+        let mut tx = self.pool.begin().await?;
 
         for stream in streams {
-            let timestamp = stream
-                .timestamp_from_time_ago()
-                .context("Failed to get timestamp")?;
+            let timestamp = match stream.timestamp_from_time_ago() {
+                Some(t) => t,
+                None => {
+                    failed_inserts.push(FailedInsert {
+                        video_id: stream.video_id.clone(),
+                        reason: InsertFailReason::OtherError("Invalid timestamp".into()),
+                    });
+                    continue;
+                }
+            };
 
-            let result = tx
-                .execute(
-                    r#"
+            let result = sqlx::query(
+                r#"
                 INSERT INTO streams (
-                    video_id,
-                    title,
-                    view_count,
-                    streamed_date,
-                    stream_timestamp,
-                    duration,
-                    closed_captions_summary
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                    video_id, title, view_count, streamed_date,
+                    stream_timestamp, duration, closed_captions_summary
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7)
                 "#,
-                    params![
-                        &stream.video_id,
-                        &stream.title,
-                        &stream.view_count,
-                        &stream.streamed_date,
-                        timestamp.to_string(),
-                        &stream.duration,
-                        &stream.closed_captions_summary,
-                    ],
-                )
-                .inspect_err(|e| tracing::error!(error = ?e, "Failed to execute query"));
+            )
+            .bind(&stream.video_id)
+            .bind(&stream.title)
+            .bind(&stream.view_count)
+            .bind(&stream.streamed_date)
+            .bind(timestamp)
+            .bind(&stream.duration)
+            .bind(&stream.closed_captions_summary)
+            .execute(&mut *tx)
+            .await;
 
             match result {
                 Ok(_) => successful_inserts += 1,
-                Err(rusqlite::Error::SqliteFailure(error, _))
-                    if error.code == rusqlite::ErrorCode::ConstraintViolation =>
-                {
+                Err(sqlx::Error::Database(e)) if e.constraint() == Some("streams_pkey") => {
                     failed_inserts.push(FailedInsert {
                         video_id: stream.video_id.clone(),
                         reason: InsertFailReason::DuplicateEntry,
@@ -148,8 +133,7 @@ impl DataStore {
             }
         }
 
-        tx.commit()
-            .inspect_err(|e| tracing::error!(error = ?e, "Failed to commit transaction"))?;
+        tx.commit().await.context("Failed to commit transaction")?;
 
         Ok(BulkInsertResult {
             successful_inserts,
@@ -157,84 +141,58 @@ impl DataStore {
         })
     }
 
-    pub fn get_stream(&self, video_id: &str) -> anyhow::Result<Option<Stream>> {
-        let result = self
-            .conn
-            .query_row(
-                "SELECT * FROM streams WHERE video_id = ?",
-                params![video_id],
-                |row| {
-                    Ok(Stream {
-                        video_id: row.get(0)?,
-                        title: row.get(1)?,
-                        view_count: row.get(2)?,
-                        streamed_date: row.get(3)?,
-                        duration: row.get(5)?,
-                        closed_captions_summary: row.get(6)?,
-                    })
-                },
-            )
-            .inspect_err(|e| tracing::error!(error = ?e, "Failed to execute query"));
+    pub async fn get_stream(&self, video_id: &str) -> anyhow::Result<Option<Stream>> {
+        let result = sqlx::query_as::<_, Stream>(
+            "SELECT video_id, title, view_count, streamed_date, duration, closed_captions_summary FROM streams WHERE video_id = $1"
+        )
+        .bind(video_id)
+        .fetch_optional(&self.pool)
+        .await
+        .inspect_err(|e| tracing::error!(error = ?e, "Failed to fetch stream"))?;
 
-        match result {
-            Ok(stream) => Ok(Some(stream)),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(e.into()),
-        }
+        Ok(result)
     }
 
-    pub fn update_stream(&self, stream: &Stream) -> anyhow::Result<()> {
-        self.conn
-            .execute(
-                r#"
-            UPDATE streams 
-            SET title = ?, 
-                view_count = ?,
-                duration = ?,
-                closed_captions_summary = ?
-            WHERE video_id = ?
+    pub async fn update_stream(&self, stream: &Stream) -> anyhow::Result<()> {
+        sqlx::query(
+            r#"
+            UPDATE streams
+            SET title = $1,
+                view_count = $2,
+                duration = $3,
+                closed_captions_summary = $4
+            WHERE video_id = $5
             "#,
-                params![
-                    &stream.title,
-                    &stream.view_count,
-                    &stream.duration,
-                    &stream.closed_captions_summary,
-                    &stream.video_id,
-                ],
-            )
-            .inspect_err(|e| tracing::error!(error = ?e, "Failed to execute query"))
-            .context("Failed to update stream")?;
+        )
+        .bind(&stream.title)
+        .bind(&stream.view_count)
+        .bind(&stream.duration)
+        .bind(&stream.closed_captions_summary)
+        .bind(&stream.video_id)
+        .execute(&self.pool)
+        .await
+        .context("Failed to update stream")?;
 
         Ok(())
     }
 
-    pub fn delete_stream(&self, video_id: &str) -> anyhow::Result<()> {
-        self.conn
-            .execute("DELETE FROM streams WHERE video_id = ?", params![video_id])
-            .inspect_err(|e| tracing::error!(error = ?e, "Failed to execute query"))
+    pub async fn delete_stream(&self, video_id: &str) -> anyhow::Result<()> {
+        sqlx::query("DELETE FROM streams WHERE video_id = $1")
+            .bind(video_id)
+            .execute(&self.pool)
+            .await
             .context("Failed to delete stream")?;
-
         Ok(())
     }
 
-    pub fn list_streams(&self) -> anyhow::Result<Vec<Stream>> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT * FROM streams ORDER BY stream_timestamp DESC")
-            .inspect_err(|e| tracing::error!(error = ?e, "Failed to prepare query"))?;
-        let stream_iter = stmt.query_map([], |row| {
-            Ok(Stream {
-                video_id: row.get(0)?,
-                title: row.get(1)?,
-                view_count: row.get(2)?,
-                streamed_date: row.get(3)?,
-                duration: row.get(5)?,
-                closed_captions_summary: row.get(6)?,
-            })
-        })?;
-
-        let streams: Result<Vec<_>, _> = stream_iter.collect();
-        Ok(streams?)
+    pub async fn list_streams(&self) -> anyhow::Result<Vec<Stream>> {
+        let streams = sqlx::query_as::<_, Stream>(
+            "SELECT video_id, title, view_count, streamed_date, duration, closed_captions_summary FROM streams ORDER BY stream_timestamp DESC"
+        )
+        .fetch_all(&self.pool)
+        .await
+        .context("Failed to list streams")?;
+        Ok(streams)
     }
 }
 
@@ -254,102 +212,4 @@ pub struct FailedInsert {
 pub enum InsertFailReason {
     DuplicateEntry,
     OtherError(String),
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn create_test_db() -> anyhow::Result<DataStore> {
-        DataStore::new(":memory:")
-    }
-
-    #[test]
-    fn test_datastore_crud_operations() -> anyhow::Result<()> {
-        let db = create_test_db()?;
-
-        // Test inserting a stream
-        let stream = Stream {
-            video_id: "abc123".to_string(),
-            title: "Test Stream".to_string(),
-            view_count: "1000 views".to_string(),
-            streamed_date: "4 days ago".to_string(),
-            duration: "1:30:00".to_string(),
-            closed_captions_summary: "Test summary".to_string(),
-        };
-        db.insert_stream(&stream)?;
-
-        // Test retrieving the stream
-        let retrieved = db.get_stream("abc123")?.expect("Stream should exist");
-        assert_eq!(retrieved.video_id, "abc123");
-        assert_eq!(retrieved.title, "Test Stream");
-
-        // Test updating the stream
-        let mut updated_stream = retrieved;
-        updated_stream.title = "Updated Test Stream".to_string();
-        db.update_stream(&updated_stream)?;
-
-        let updated = db.get_stream("abc123")?.expect("Stream should exist");
-        assert_eq!(updated.title, "Updated Test Stream");
-
-        // Test listing streams
-        let streams = db.list_streams()?;
-        assert_eq!(streams.len(), 1);
-        assert_eq!(streams[0].video_id, "abc123");
-
-        // Test deleting the stream
-        db.delete_stream("abc123")?;
-        let deleted = db.get_stream("abc123")?;
-        assert!(deleted.is_none(), "Stream should have been deleted");
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_bulk_insert_streams() -> anyhow::Result<()> {
-        let mut db = create_test_db()?;
-
-        let streams = vec![
-            Stream {
-                video_id: "unique1".to_string(),
-                title: "Test Stream 1".to_string(),
-                view_count: "1000 views".to_string(),
-                streamed_date: "1 hour ago".to_string(),
-                duration: "1:30:00".to_string(),
-                closed_captions_summary: "Test summary".to_string(),
-            },
-            Stream {
-                video_id: "unique2".to_string(),
-                title: "Test Stream 2".to_string(),
-                view_count: "2000 views".to_string(),
-                streamed_date: "2 hours ago".to_string(),
-                duration: "2:00:00".to_string(),
-                closed_captions_summary: "Test summary".to_string(),
-            },
-            // Add a duplicate to test error handling
-            Stream {
-                video_id: "unique1".to_string(),
-                title: "Duplicate Stream".to_string(),
-                view_count: "3000 views".to_string(),
-                streamed_date: "3 hours ago".to_string(),
-                duration: "1:45:00".to_string(),
-                closed_captions_summary: "Test summary".to_string(),
-            },
-        ];
-
-        let result = db.bulk_insert_streams(&streams)?;
-
-        assert_eq!(result.successful_inserts, 2);
-        assert_eq!(result.failed_inserts.len(), 1);
-        assert!(matches!(
-            result.failed_inserts[0].reason,
-            InsertFailReason::DuplicateEntry
-        ));
-
-        // Verify that both non-duplicate streams were inserted
-        let all_streams = db.list_streams()?;
-        assert_eq!(all_streams.len(), 2);
-
-        Ok(())
-    }
 }

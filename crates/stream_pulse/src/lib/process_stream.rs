@@ -44,7 +44,10 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
     let ytdlp = &YTDLP;
     let openai = &OPENAI;
 
-    let db = DataStore::new("bunge-bits-store.db").context("Failed to connect to database")?;
+    let db_url = std::env::var("DATABASE_URL").context("DATABASE_URL not set")?;
+    let db = DataStore::init(&db_url)
+        .await
+        .context("Failed to initialize database")?;
 
     let yt_html_document = client.get(YOUTUBE_STREAM_URL).send().await?.text().await?;
     match extract_json_from_script(&yt_html_document) {
@@ -61,10 +64,7 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
                     .cmp(&a.timestamp_from_time_ago())
             });
 
-            let mut streams = streams
-                .into_iter()
-                .filter(|stream| !db.stream_exists(&stream.video_id).unwrap_or(false))
-                .collect::<Vec<Stream>>();
+            let mut streams = filter_existing_streams(&db, streams).await;
 
             // XXX: Revert to take all
             streams.par_iter_mut().take(1).try_for_each(|stream| {
@@ -420,4 +420,22 @@ pub fn chat_completions_text_from_response(
     };
 
     Ok(response)
+}
+
+/// Filters out streams that already exist in the database based on their `video_id`.
+pub async fn filter_existing_streams(db: &DataStore, streams: Vec<Stream>) -> Vec<Stream> {
+    let mut filtered = Vec::new();
+
+    for stream in streams {
+        match db.stream_exists(&stream.video_id).await {
+            Ok(false) => filtered.push(stream),
+            Ok(true) => {} // skip existing
+            Err(e) => {
+                tracing::warn!(video_id = %stream.video_id, error = %e, "Failed to check stream existence");
+                // Optional: push anyway, or skip silently
+            }
+        }
+    }
+
+    filtered
 }

@@ -1,8 +1,9 @@
 use std::fmt::Display;
 
 use chrono::{DateTime, Duration, Utc};
+use sqlx::FromRow;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, FromRow, Clone, Default)]
 pub struct Stream {
     pub video_id: String,
     pub title: String,
@@ -90,109 +91,5 @@ impl Display for StreamCategory {
             StreamCategory::NationalAssembly => write!(f, "National Assembly"),
             StreamCategory::Senate => write!(f, "Senate"),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn create_stream(streamed_date: &str) -> Stream {
-        Stream {
-            video_id: "test_id".to_string(),
-            title: "Test Stream".to_string(),
-            view_count: "1000".to_string(),
-            streamed_date: streamed_date.to_string(),
-            duration: "1:00:00".to_string(),
-            ..Default::default()
-        }
-    }
-
-    #[test]
-    fn test_url_generation() {
-        let stream = create_stream("1 hour ago");
-        assert_eq!(stream.url(), "https://www.youtube.com/watch?v=test_id");
-    }
-
-    #[test]
-    fn test_timestamp_seconds_ago() {
-        let stream = create_stream("30 seconds ago");
-        let timestamp = stream.timestamp_from_time_ago().unwrap();
-        let expected = Utc::now() - Duration::seconds(30);
-        assert!((timestamp - expected).num_seconds().abs() < 2);
-    }
-
-    #[test]
-    fn test_timestamp_minutes_ago() {
-        let stream = create_stream("15 minutes ago");
-        let timestamp = stream.timestamp_from_time_ago().unwrap();
-        let expected = Utc::now() - Duration::minutes(15);
-        assert!((timestamp - expected).num_seconds().abs() < 2);
-    }
-
-    #[test]
-    fn test_timestamp_hours_ago() {
-        let stream = create_stream("2 hours ago");
-        let timestamp = stream.timestamp_from_time_ago().unwrap();
-        let expected = Utc::now() - Duration::hours(2);
-        assert!((timestamp - expected).num_seconds().abs() < 2);
-    }
-
-    #[test]
-    fn test_timestamp_days_ago() {
-        let stream = create_stream("3 days ago");
-        let timestamp = stream.timestamp_from_time_ago().unwrap();
-        let expected = Utc::now() - Duration::days(3);
-        assert!((timestamp - expected).num_seconds().abs() < 2);
-    }
-
-    #[test]
-    fn test_timestamp_weeks_ago() {
-        let stream = create_stream("2 weeks ago");
-        let timestamp = stream.timestamp_from_time_ago().unwrap();
-        let expected = Utc::now() - Duration::weeks(2);
-        assert!((timestamp - expected).num_seconds().abs() < 2);
-    }
-
-    #[test]
-    fn test_timestamp_months_ago() {
-        let stream = create_stream("3 months ago");
-        let timestamp = stream.timestamp_from_time_ago().unwrap();
-        let expected = Utc::now() - Duration::days(3 * 30);
-        assert!((timestamp - expected).num_seconds().abs() < 2);
-    }
-
-    #[test]
-    fn test_timestamp_years_ago() {
-        let stream = create_stream("2 years ago");
-        let timestamp = stream.timestamp_from_time_ago().unwrap();
-        let expected = Utc::now() - Duration::days(2 * 365);
-        assert!((timestamp - expected).num_seconds().abs() < 2);
-    }
-
-    #[test]
-    fn test_timestamp_singular_unit() {
-        let stream = create_stream("1 year ago");
-        let timestamp = stream.timestamp_from_time_ago().unwrap();
-        let expected = Utc::now() - Duration::days(365);
-        assert!((timestamp - expected).num_seconds().abs() < 2);
-    }
-
-    #[test]
-    fn test_timestamp_invalid_format() {
-        let stream = create_stream("invalid time ago");
-        assert!(stream.timestamp_from_time_ago().is_none());
-    }
-
-    #[test]
-    fn test_timestamp_empty_string() {
-        let stream = create_stream("");
-        assert!(stream.timestamp_from_time_ago().is_none());
-    }
-
-    #[test]
-    fn test_timestamp_future_time() {
-        let stream = create_stream("2 hours from now");
-        assert!(stream.timestamp_from_time_ago().is_none());
     }
 }

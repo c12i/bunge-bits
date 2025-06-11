@@ -11,6 +11,6 @@ path = "./src/lib.rs"
 [dependencies]
 anyhow = { workspace = true }
 chrono = "0.4.38"
-rusqlite = "0.35.0"
 regex = "1.10.6"
 tracing = { workspace = true }
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "chrono"] }
