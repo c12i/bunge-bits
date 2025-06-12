@@ -53,7 +53,7 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
     match extract_json_from_script(&yt_html_document) {
         Ok(json) => {
             let mut streams = parse_streams(&json)?;
-            tracing::info!("Processing `{}` streams", streams.len());
+            tracing::info!(count = streams.len(), "Processing streams");
 
             // This is where initially downloaded audio by yt-dlp is saved
             let audio_download_path = PathBuf::from(format!("{WORKDIR}/audio"));
@@ -73,10 +73,10 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
 
             transcribe_streams(&streams, openai).await?;
 
-            summarize_streams(&streams, Arc::new(OPENAI.clone())).await?;
+            summarize_streams(&mut streams, Arc::new(OPENAI.clone()), &db).await?;
         }
         Err(e) => {
-            tracing::error!(error = ?e,  "Error parsing streams");
+            tracing::error!(error = ?e,  "Error parsing youtube html document");
         }
     }
 
@@ -198,14 +198,18 @@ async fn transcribe_audio(audio_path: PathBuf, openai: &OpenAiClient) -> anyhow:
 }
 
 #[tracing::instrument(skip(streams, openai))]
-async fn summarize_streams(streams: &[Stream], openai: Arc<OpenAiClient>) -> anyhow::Result<()> {
+async fn summarize_streams(
+    streams: &mut [Stream],
+    openai: Arc<OpenAiClient>,
+    db: &DataStore,
+) -> anyhow::Result<()> {
     // XXX: Revert to take all
-    for stream in streams.iter().take(1) {
+    for stream in streams.iter_mut().take(1) {
         let transcript_path = format!("{WORKDIR}/{}.txt", stream.video_id);
         let transcript = std::fs::read_to_string(&transcript_path)
             .with_context(|| format!("Failed to read transcript at {}", transcript_path))?;
 
-        summarize_linear(
+        let result = summarize_linear(
             &transcript,
             TRANSCRIPT_CHUNK_DELIMITER,
             {
@@ -225,7 +229,11 @@ async fn summarize_streams(streams: &[Stream], openai: Arc<OpenAiClient>) -> any
         )
         .await
         .with_context(|| format!("Failed to summarize stream {}", stream.video_id))?;
+
+        stream.summary = Some(result);
     }
+
+    db.bulk_insert_streams(streams).await?;
 
     Ok(())
 }
@@ -432,7 +440,6 @@ pub async fn filter_existing_streams(db: &DataStore, streams: Vec<Stream>) -> Ve
             Ok(true) => {} // skip existing
             Err(e) => {
                 tracing::warn!(video_id = %stream.video_id, error = %e, "Failed to check stream existence");
-                // Optional: push anyway, or skip silently
             }
         }
     }

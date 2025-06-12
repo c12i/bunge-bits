@@ -10,7 +10,7 @@ pub struct Stream {
     pub view_count: String,
     pub streamed_date: String,
     pub duration: String,
-    pub closed_captions_summary: String,
+    pub summary: Option<String>,
 }
 
 impl Stream {
