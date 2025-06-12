@@ -155,11 +155,7 @@ async fn transcribe_audio(audio_path: PathBuf, openai: &OpenAiClient) -> anyhow:
     let mut attempt = 0;
 
     loop {
-        tracing::info!(
-            attempt,
-            "Transcribing audio from source {}",
-            audio_path.display(),
-        );
+        tracing::info!(attempt, audio_path = %audio_path.display(), "Transcribing audio from source",);
 
         attempt += 1;
         match openai.audio().create_transcription(params.clone()).await {
@@ -189,7 +185,7 @@ async fn transcribe_audio(audio_path: PathBuf, openai: &OpenAiClient) -> anyhow:
     }
 }
 
-#[tracing::instrument(skip(streams, openai))]
+#[tracing::instrument(skip(streams, openai, db))]
 async fn summarize_streams(
     streams: &mut [Stream],
     openai: Arc<OpenAiClient>,
@@ -435,7 +431,7 @@ pub async fn sort_and_filter_existing_streams(
     let mut filtered = Vec::new();
 
     //XXX: Revert to take more
-    for stream in streams.iter().take(2) {
+    for stream in streams.iter().take(3) {
         match db.stream_exists(&stream.video_id).await {
             Ok(false) => filtered.push(stream.clone()),
             Ok(true) => {} // skip existing
