@@ -44,6 +44,17 @@ pub fn parse_streams(json: &Value) -> Result<Vec<Stream>, Error> {
                     continue;
                 }
                 let StreamWrapper(stream) = StreamWrapper::try_from(video_renderer)?;
+
+                //XXX: Skip if duration is < 10 minutes
+                if let Some(duration_secs) = parse_duration_to_seconds(&stream.duration) {
+                    if duration_secs < 600 {
+                        continue;
+                    }
+                } else {
+                    // XXX: skip if duration could not be parsed
+                    continue;
+                }
+
                 streams.push(stream);
             }
         }
@@ -54,6 +65,20 @@ pub fn parse_streams(json: &Value) -> Result<Vec<Stream>, Error> {
     }
 
     Ok(streams)
+}
+
+fn parse_duration_to_seconds(duration_str: &str) -> Option<u64> {
+    let parts: Vec<u64> = duration_str
+        .split(':')
+        .filter_map(|p| p.parse::<u64>().ok())
+        .collect();
+
+    match parts.len() {
+        3 => Some(parts[0] * 3600 + parts[1] * 60 + parts[2]), // HH:MM:SS
+        2 => Some(parts[0] * 60 + parts[1]),                   // MM:SS
+        1 => Some(parts[0]),                                   // SS (rare)
+        _ => None,
+    }
 }
 
 #[derive(Debug)]
