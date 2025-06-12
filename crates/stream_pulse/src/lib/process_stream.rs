@@ -84,26 +84,34 @@ fn handle_stream_audio(
 ) -> anyhow::Result<()> {
     let youtube_stream = format!("https://youtube.com/watch?v={}", stream.video_id);
 
-    let mut audio_out_path = audio_download_path.join(&stream.video_id);
+    // Pass path without extension to yt-dlp
+    let audio_base_path = audio_download_path.join(&stream.video_id);
+    let audio_mp3_path = audio_base_path.with_extension("mp3");
 
-    // This is the directory we store the chunked audio files
     let chunked_audio_path = PathBuf::from(format!("{WORKDIR}/audio/{}", stream.video_id));
 
-    // Download audio file with yt-dlp
-    ytdlp.download_audio(&youtube_stream, &audio_out_path)?;
+    // Skip download if .mp3 already exists
+    if !audio_mp3_path.exists() {
+        ytdlp.download_audio(&youtube_stream, &audio_base_path)?;
+    } else {
+        tracing::debug!("Audio already exists at {:?}", audio_mp3_path);
+    }
 
-    // set mp3 extension
-    audio_out_path.set_extension("mp3");
+    // Skip splitting if chunk files already exist
+    let chunk_exists = std::fs::read_dir(&chunked_audio_path)
+        .map(|mut entries| entries.any(|e| e.is_ok()))
+        .unwrap_or(false);
 
-    // create nested `/stream.id/` dir
-    create_dir_all(&chunked_audio_path).expect("Failed to create directories");
-
-    // Split downloaded audio to chunks
-    ytdlp.split_audio_to_chunks(
-        audio_out_path,
-        900,
-        chunked_audio_path.join(format!("{}_%03d.mp3", stream.video_id)),
-    )?;
+    if !chunk_exists {
+        create_dir_all(&chunked_audio_path)?;
+        ytdlp.split_audio_to_chunks(
+            &audio_mp3_path,
+            900,
+            chunked_audio_path.join(format!("{}_%03d.mp3", stream.video_id)),
+        )?;
+    } else {
+        tracing::debug!("Chunks already exist at {:?}", chunked_audio_path);
+    }
 
     Ok(())
 }
