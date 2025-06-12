@@ -13,4 +13,8 @@ anyhow = { workspace = true }
 chrono = "0.4.38"
 regex = "1.10.6"
 tracing = { workspace = true }
-sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "chrono"] }
+sqlx = { version = "0.8.6", features = [
+  "postgres",
+  "runtime-tokio-native-tls",
+  "chrono",
+] }
