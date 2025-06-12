@@ -117,9 +117,9 @@ async fn transcribe_streams(streams: &[Stream], openai: &OpenAiClient) -> anyhow
             .append(true)
             .open(format!("{WORKDIR}/{}.txt", stream.video_id))?;
 
-        let mut entries: Vec<_> = std::fs::read_dir(&audio_chunks_path)
+        let mut entries = std::fs::read_dir(&audio_chunks_path)
             .context("Failed to read dir")?
-            .collect::<Result<_, _>>()
+            .collect::<Result<Vec<_>, _>>()
             .context("Failed to collect dir entries")?;
 
         // fs::read_dir doesn't guarantee sorted dir contents, hence the need to
@@ -313,18 +313,6 @@ Based on the transcript chunk, please summarize it based on the instructions you
     }
 }
 
-/// Try to extract wait time from potential 429 error response
-fn extract_wait_time_ms_from_error(err_msg: &str) -> Option<u64> {
-    let marker = "Please try again in ";
-    if let Some(start) = err_msg.find(marker) {
-        let after = &err_msg[start + marker.len()..];
-        if let Some(end) = after.find("ms") {
-            return after[..end].trim().parse::<u64>().ok();
-        }
-    }
-    None
-}
-
 #[tracing::instrument(skip(openai, summaries))]
 async fn combine_summaries(
     summaries: Vec<String>,
@@ -344,10 +332,16 @@ Summaries:
 
     let parameters = ChatCompletionParametersBuilder::default()
         .model(Gpt4Engine::Gpt4O.to_string())
-        .messages(vec![ChatMessage::User {
-            content: ChatMessageContent::Text(prompt),
-            name: None,
-        }])
+        .messages(vec![
+            ChatMessage::System {
+                content: ChatMessageContent::Text(include_str!("../prompts/system_0.txt").into()),
+                name: None,
+            },
+            ChatMessage::User {
+                content: ChatMessageContent::Text(prompt),
+                name: None,
+            },
+        ])
         .response_format(ChatCompletionResponseFormat::Text)
         .build()?;
 
@@ -442,4 +436,16 @@ pub async fn sort_and_filter_existing_streams(
     }
 
     filtered
+}
+
+/// Try to extract wait time from potential 429 error response
+fn extract_wait_time_ms_from_error(err_msg: &str) -> Option<u64> {
+    let marker = "Please try again in ";
+    if let Some(start) = err_msg.find(marker) {
+        let after = &err_msg[start + marker.len()..];
+        if let Some(end) = after.find("ms") {
+            return after[..end].trim().parse::<u64>().ok();
+        }
+    }
+    None
 }
