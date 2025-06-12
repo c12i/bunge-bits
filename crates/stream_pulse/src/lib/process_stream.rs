@@ -58,16 +58,9 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
             // This is where initially downloaded audio by yt-dlp is saved
             let audio_download_path = PathBuf::from(format!("{WORKDIR}/audio"));
 
-            // sort by upload date
-            streams.sort_by(|a, b| {
-                b.timestamp_from_time_ago()
-                    .cmp(&a.timestamp_from_time_ago())
-            });
+            let mut streams = sort_and_filter_existing_streams(&db, &mut streams).await;
 
-            let mut streams = filter_existing_streams(&db, streams).await;
-
-            // XXX: Revert to take all
-            streams.par_iter_mut().take(1).try_for_each(|stream| {
+            streams.par_iter_mut().try_for_each(|stream| {
                 handle_stream_audio(stream, audio_download_path.clone(), ytdlp)
             })?;
 
@@ -117,8 +110,7 @@ fn handle_stream_audio(
 
 #[tracing::instrument(skip(streams, openai))]
 async fn transcribe_streams(streams: &[Stream], openai: &OpenAiClient) -> anyhow::Result<()> {
-    // XXX: Revert to take all
-    for stream in streams.iter().take(1) {
+    for stream in streams {
         let audio_chunks_path = PathBuf::from(format!("{WORKDIR}/audio/{}", stream.video_id));
         let mut transcript_file = OpenOptions::new()
             .create(true)
@@ -203,8 +195,7 @@ async fn summarize_streams(
     openai: Arc<OpenAiClient>,
     db: &DataStore,
 ) -> anyhow::Result<()> {
-    // XXX: Revert to take all
-    for stream in streams.iter_mut().take(1) {
+    for stream in streams.iter_mut() {
         let transcript_path = format!("{WORKDIR}/{}.txt", stream.video_id);
         let transcript = std::fs::read_to_string(&transcript_path)
             .with_context(|| format!("Failed to read transcript at {}", transcript_path))?;
@@ -431,12 +422,22 @@ pub fn chat_completions_text_from_response(
 }
 
 /// Filters out streams that already exist in the database based on their `video_id`.
-pub async fn filter_existing_streams(db: &DataStore, streams: Vec<Stream>) -> Vec<Stream> {
+pub async fn sort_and_filter_existing_streams(
+    db: &DataStore,
+    streams: &mut [Stream],
+) -> Vec<Stream> {
+    // sort by upload date
+    streams.sort_by(|a, b| {
+        b.timestamp_from_time_ago()
+            .cmp(&a.timestamp_from_time_ago())
+    });
+
     let mut filtered = Vec::new();
 
-    for stream in streams {
+    //XXX: Revert to take more
+    for stream in streams.iter().take(2) {
         match db.stream_exists(&stream.video_id).await {
-            Ok(false) => filtered.push(stream),
+            Ok(false) => filtered.push(stream.clone()),
             Ok(true) => {} // skip existing
             Err(e) => {
                 tracing::warn!(video_id = %stream.video_id, error = %e, "Failed to check stream existence");
