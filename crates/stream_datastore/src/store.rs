@@ -41,7 +41,6 @@ impl DataStore {
         Ok(DataStore { pool })
     }
 
-    #[tracing::instrument(skip(self))]
     pub async fn stream_exists(&self, video_id: &str) -> anyhow::Result<bool> {
         let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM streams WHERE video_id = $1")
             .bind(video_id)

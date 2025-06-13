@@ -37,6 +37,8 @@ const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChan
 // Work directory - basically where all artifacts will be stored
 const WORKDIR: &str = "/var/tmp/bunge-bits";
 const TRANSCRIPT_CHUNK_DELIMITER: &str = "----END_OF_CHUNK----";
+// Maximum streams that can be processed in a run
+const MAX_STREAMS_TO_PROCESS: usize = 3;
 
 #[tracing::instrument]
 pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
@@ -59,6 +61,11 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
             let audio_download_path = PathBuf::from(format!("{WORKDIR}/audio"));
 
             let mut streams = sort_and_filter_existing_streams(&db, &mut streams).await;
+
+            if streams.is_empty() {
+                tracing::info!("No streams to process at this time");
+                return Ok(());
+            }
 
             streams.par_iter_mut().try_for_each(|stream| {
                 handle_stream_audio(stream, audio_download_path.clone(), ytdlp)
@@ -193,6 +200,7 @@ async fn transcribe_audio(audio_path: PathBuf, openai: &OpenAiClient) -> anyhow:
     }
 }
 
+// TODO: Stream resume support
 #[tracing::instrument(skip(streams, openai, db))]
 async fn summarize_streams(
     streams: &mut [Stream],
@@ -225,6 +233,7 @@ async fn summarize_streams(
         .await
         .with_context(|| format!("Failed to summarize stream {}", stream.video_id))?;
 
+        // TODO: Add guard to detect malformed or incomplete LLM output
         stream.summary = Some(result);
     }
 
@@ -415,33 +424,28 @@ pub fn chat_completions_text_from_response(
             if let Some(content) = content {
                 match content {
                     ChatMessageContent::Text(text) => text,
-                    c => bail!("Unexpcted chat message content: {:?}", c),
+                    c => bail!("Unexpected chat message content: {:?}", c),
                 }
             } else {
-                bail!("Unexpected absence of chage message content");
+                bail!("Unexpected absence of chat message content");
             }
         }
-        c => bail!("Unexpcted chat message response: {:?}", c),
+        c => bail!("Unexpected chat message response: {:?}", c),
     };
 
     Ok(response)
 }
 
-/// Filters out streams that already exist in the database based on their `video_id`.
+/// Filter and sort streams that already exist in the database based on their `video_id`.
 pub async fn sort_and_filter_existing_streams(
     db: &DataStore,
     streams: &mut [Stream],
 ) -> Vec<Stream> {
-    // sort by upload date
-    streams.sort_by(|a, b| {
-        b.timestamp_from_time_ago()
-            .cmp(&a.timestamp_from_time_ago())
-    });
-
+    // Initially filter out streams already processed
+    // from raw stream data from yt document
     let mut filtered = Vec::new();
 
-    //XXX: Revert to take more
-    for stream in streams.iter().take(3) {
+    for stream in streams.iter() {
         match db.stream_exists(&stream.video_id).await {
             Ok(false) => filtered.push(stream.clone()),
             Ok(true) => {} // skip existing
@@ -451,7 +455,15 @@ pub async fn sort_and_filter_existing_streams(
         }
     }
 
-    filtered
+    // sort filtered streams by timestamp ascending (older streams first)
+    // newer streams will “wait their turn” behind older unprocessed ones.
+    filtered.sort_by(|a, b| {
+        a.timestamp_from_time_ago()
+            .cmp(&b.timestamp_from_time_ago())
+    });
+
+    // return the first 3 streams to avoid overloading system
+    filtered.into_iter().take(MAX_STREAMS_TO_PROCESS).collect()
 }
 
 /// Try to extract wait time from potential 429 error response
