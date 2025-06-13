@@ -23,6 +23,7 @@
 //! - The initial run processes all 30 archived streams sequentially.
 //! - Subsequent runs focus on identifying and processing new streams.
 
+use futures::FutureExt;
 use stream_pulse::{fetch_and_process_streams, tracing::init_tracing_subscriber};
 use tokio_cron_scheduler::{JobBuilder, JobScheduler};
 
@@ -43,9 +44,13 @@ async fn main() -> anyhow::Result<()> {
         .with_schedule(CRON_EXPR)?
         .with_run_async(Box::new(|uuid, _| {
             Box::pin(async move {
-                println!("Running cron job: {}", uuid);
-                if let Err(e) = fetch_and_process_streams().await {
-                    eprintln!("Error in cron job: {}", e);
+                tracing::info!(job_id = %uuid, "Running cron job: {}", uuid);
+                let result = std::panic::AssertUnwindSafe(fetch_and_process_streams())
+                    .catch_unwind()
+                    .await;
+
+                if let Err(err) = result {
+                    tracing::error!(error = ?err, "Job panicked");
                 }
             })
         }))
@@ -56,7 +61,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Keep the main thread alive
     tokio::signal::ctrl_c().await?;
-    println!("Shutting down scheduler...");
+    tracing::info!("Shutting down scheduler...");
     scheduler.shutdown().await?;
 
     Ok(())
