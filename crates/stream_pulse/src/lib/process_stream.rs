@@ -274,6 +274,10 @@ Based on the transcript chunk, please summarize it based on the instructions you
                 name: None,
             },
             ChatMessage::User {
+                content: ChatMessageContent::Text(include_str!("../prompts/user_0.txt").into()),
+                name: None,
+            },
+            ChatMessage::User {
                 content: ChatMessageContent::Text(user_prompt),
                 name: None,
             },
@@ -330,7 +334,7 @@ async fn combine_summaries(
 
     let prompt = format!(
         r#"
-Given the following summaries of a video live stream chunks, combine them into a single coherent summary:
+Given the following markdown summaries of individual transcript chunks from a Kenyan Parliament stream, combine them into one single, coherent markdown summary. Follow the same formatting instructions you were given previously, including front matter, summary paragraph, and all structured sections.
 
 Summaries:
 {}
@@ -343,6 +347,10 @@ Summaries:
         .messages(vec![
             ChatMessage::System {
                 content: ChatMessageContent::Text(include_str!("../prompts/system_0.txt").into()),
+                name: None,
+            },
+            ChatMessage::User {
+                content: ChatMessageContent::Text(include_str!("../prompts/user_0.txt").into()),
                 name: None,
             },
             ChatMessage::User {
