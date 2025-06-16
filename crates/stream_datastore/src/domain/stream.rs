@@ -10,7 +10,8 @@ pub struct Stream {
     pub view_count: String,
     pub streamed_date: String,
     pub duration: String,
-    pub summary: Option<String>,
+    pub summary_md: Option<String>,
+    pub timestamp_md: Option<String>,
 }
 
 impl Stream {

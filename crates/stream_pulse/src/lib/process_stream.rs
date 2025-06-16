@@ -74,6 +74,9 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
             transcribe_streams(&streams, openai).await?;
 
             summarize_streams(&mut streams, Arc::new(OPENAI.clone()), &db).await?;
+
+            // TODO: Generate timestamp_md
+
         }
         Err(e) => {
             tracing::error!(error = ?e,  "Error extracing ytInitialData from the html document");
@@ -240,7 +243,7 @@ async fn summarize_streams(
         .with_context(|| format!("Failed to summarize stream {}", stream.video_id))?;
 
         // TODO: Add guard to detect malformed or incomplete LLM output
-        stream.summary = Some(result);
+        stream.summary_md = Some(result);
     }
 
     db.bulk_insert_streams(streams).await?;

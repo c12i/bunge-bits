@@ -29,7 +29,8 @@ impl DataStore {
                 streamed_date TEXT NOT NULL,
                 stream_timestamp TIMESTAMPTZ NOT NULL,
                 duration TEXT NOT NULL,
-                summary TEXT
+                summary_md TEXT,
+                timestamp_md TEXT
             )
             "#,
         )
@@ -78,8 +79,8 @@ impl DataStore {
                 r#"
                 INSERT INTO streams (
                     video_id, title, view_count, streamed_date,
-                    stream_timestamp, duration, summary
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    stream_timestamp, duration, summary_md, timestamp_md
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 "#,
             )
             .bind(&stream.video_id)
@@ -88,7 +89,8 @@ impl DataStore {
             .bind(&stream.streamed_date)
             .bind(timestamp)
             .bind(&stream.duration)
-            .bind(&stream.summary)
+            .bind(&stream.summary_md)
+            .bind(&stream.timestamp_md)
             .execute(&mut *tx)
             .await;
 
