@@ -27,14 +27,23 @@ use futures::FutureExt;
 use stream_pulse::{fetch_and_process_streams, tracing::init_tracing_subscriber};
 use tokio_cron_scheduler::{JobBuilder, JobScheduler};
 
-// Should run every 12 hours
-const CRON_EXPR: &str = "0 0 */12 * * *";
+// Should run every ~12~ n hours
+const CRON_EXPR: &str = "0 0 */4 * * *";
 // const CRON_EXPR: &str = "*/15 * * * * *";
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv()?;
     init_tracing_subscriber()?;
+
+    let _guard = sentry::init((
+        std::env::var("SENTRY_DSN").expect("SENTRY_DSN env var not set"),
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            environment: Some("production".into()),
+            ..Default::default()
+        },
+    ));
 
     let mut scheduler = JobScheduler::new().await?;
 

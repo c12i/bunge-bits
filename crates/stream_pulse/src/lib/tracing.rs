@@ -12,6 +12,7 @@ pub fn init_tracing_subscriber() -> Result<(), tracing::subscriber::SetGlobalDef
 
     let subscriber = Registry::default()
         .with(env_filter)
+        .with(sentry_tracing::layer())
         .with(JsonStorageLayer)
         .with(formatting_layer);
 

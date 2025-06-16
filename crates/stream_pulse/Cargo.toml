@@ -16,7 +16,7 @@ path = "./src/lib/lib.rs"
 stream_datastore = { version = "0.1.0", path = "../stream_datastore" }
 ytdlp_bindings = { version = "0.1.0", path = "../ytdlp_bindings" }
 stream_digest = { version = "0.1.0", path = "../stream_digest" }
-openai_dive = "0.6"
+openai_dive = "1.2.1"
 reqwest = { version = "0.12", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0"
@@ -24,7 +24,7 @@ regex = "1.10.6"
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-tokio-cron-scheduler = "0.13.0"
+tokio-cron-scheduler = "0.14.0"
 chrono-tz = "0.10.0"
 futures = "0.3.30"
 rayon = "1.5"
@@ -36,3 +36,5 @@ tracing-subscriber = { version = "0.3", features = [
 ] }
 tracing-bunyan-formatter = "0.3"
 dotenvy = "0.15.7"
+sentry = "0.39.0"
+sentry-tracing = "0.39.0"
