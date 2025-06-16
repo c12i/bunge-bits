@@ -1,5 +1,5 @@
 use std::{
-    fs::{create_dir_all, OpenOptions},
+    fs::{create_dir_all, remove_dir_all, OpenOptions},
     io::Write,
     path::PathBuf,
     sync::{Arc, LazyLock},
@@ -76,9 +76,15 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
             summarize_streams(&mut streams, Arc::new(OPENAI.clone()), &db).await?;
         }
         Err(e) => {
-            tracing::error!(error = ?e,  "Error parsing youtube html document");
+            tracing::error!(error = ?e,  "Error extracing ytInitialData from the html document");
+            bail!(
+                "Failed to extract ytInitialData from html document: {:?}",
+                e
+            );
         }
     }
+
+    cleanup_audio_dir();
 
     Ok(())
 }
@@ -275,6 +281,7 @@ Based on the transcript chunk, please summarize it based on the instructions you
             )
         });
 
+    // TODO: Add websearch capability
     let parameters = ChatCompletionParametersBuilder::default()
         .model(Gpt4Engine::Gpt4O.to_string())
         .messages(vec![
@@ -351,6 +358,7 @@ Summaries:
         summaries
     );
 
+    // TODO: Add websearch capability
     let parameters = ChatCompletionParametersBuilder::default()
         .model(Gpt4Engine::Gpt4O.to_string())
         .messages(vec![
@@ -476,4 +484,18 @@ fn extract_wait_time_ms_from_error(err_msg: &str) -> Option<u64> {
         }
     }
     None
+}
+
+/// Deletes the /audio directory inside the working directory.
+/// Logs a warning if the cleanup fails but does not panic.
+pub fn cleanup_audio_dir() {
+    let audio_path = PathBuf::from(format!("{WORKDIR}/audio"));
+
+    if audio_path.exists() {
+        if let Err(e) = remove_dir_all(&audio_path) {
+            tracing::warn!(error = ?e, path = ?audio_path, "Failed to clean up audio directory");
+        } else {
+            tracing::info!(path = ?audio_path, "Cleaned up audio directory");
+        }
+    }
 }
