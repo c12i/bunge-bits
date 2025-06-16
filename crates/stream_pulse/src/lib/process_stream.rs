@@ -8,14 +8,13 @@ use std::{
 use anyhow::{bail, Context};
 use openai_dive::v1::{
     api::Client as OpenAiClient,
-    models::Gpt4Engine,
     resources::chat::{
         ChatCompletionParametersBuilder, ChatCompletionResponse, ChatCompletionResponseFormat,
         ChatMessage, ChatMessageContent,
     },
 };
 use openai_dive::v1::{
-    models::WhisperEngine,
+    models::FlagshipModel,
     resources::{
         audio::{AudioOutputFormat, AudioTranscriptionParametersBuilder},
         shared::FileUpload,
@@ -170,7 +169,7 @@ async fn transcribe_streams(streams: &[Stream], openai: &OpenAiClient) -> anyhow
 async fn transcribe_audio(audio_path: PathBuf, openai: &OpenAiClient) -> anyhow::Result<String> {
     let params = AudioTranscriptionParametersBuilder::default()
         .file(FileUpload::File(format!("{}", audio_path.display())))
-        .model(WhisperEngine::Whisper1.to_string())
+        .model(FlagshipModel::Gpt4OAudioPreview.to_string())
         .response_format(AudioOutputFormat::Text)
         .build()?;
 
@@ -285,7 +284,7 @@ Based on the transcript chunk, please summarize it based on the instructions you
 
     // TODO: Add websearch capability
     let parameters = ChatCompletionParametersBuilder::default()
-        .model(Gpt4Engine::Gpt4O.to_string())
+        .model(FlagshipModel::Gpt4O.to_string())
         .messages(vec![
             ChatMessage::System {
                 content: ChatMessageContent::Text(include_str!("../prompts/system_0.txt").into()),
@@ -362,7 +361,7 @@ Summaries:
 
     // TODO: Add websearch capability
     let parameters = ChatCompletionParametersBuilder::default()
-        .model(Gpt4Engine::Gpt4O.to_string())
+        .model(FlagshipModel::Gpt4O.to_string())
         .messages(vec![
             ChatMessage::System {
                 content: ChatMessageContent::Text(include_str!("../prompts/system_0.txt").into()),
