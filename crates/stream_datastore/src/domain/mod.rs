@@ -1,3 +1,3 @@
 mod stream;
 
-pub use stream::Stream;
+pub use stream::{Stream, StreamCategory};

@@ -9,5 +9,5 @@
 mod domain;
 mod store;
 
-pub use domain::Stream;
+pub use domain::{Stream, StreamCategory};
 pub use store::DataStore;

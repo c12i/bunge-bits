@@ -4,7 +4,7 @@
 2. If provided, review the previous summaries to maintain context and avoid repetition.
 
 3. Create a summary containing the following information:
-   - **Bills discussed** (only include by name if explicitly mentioned—and only if there were any bills discussed)
+   - **Bills discussed** (only include by name if explicitly mentioned—and only if there were any bills discussed) - (skip this if no bills were discussed)
    - **Other topics discussed**
    - **Key takeaways and decisions made** regarding particular topics or bills
    - **Major participants** in discussions/debates (use general terms like "an MP", "a senator", "the speaker", etc. when you suspect a misspelling or cannot confirm the name)
@@ -12,25 +12,14 @@
 
 4. Generate a **concise, descriptive title** summarizing the core focus of the transcript using the following template:
 
-   ${{HOUSE}} Proceedings on <Main Topic> – ${{DATE}}
+   ${{TITLE}} – ${{DATE}}
 
-5. Add a **1–2 sentence summary paragraph** immediately after the front matter. This should give a brief, readable overview of what the session covered and what outcomes or tensions emerged. Keep it factual, neutral, and concise.
+5. Start with a **1–2 sentence summary paragraph**. This should give a brief, readable overview of what the session covered and what outcomes or tensions emerged. Keep it factual, neutral, and concise.
 
 6. Format your response in **markdown**, using appropriate headers, bullet points, and emphasis:
    - Use `##` headers for sections like *Bills Discussed*, *Topics Discussed*, etc.
    - Use **bold** for final decisions or outcomes (e.g. **approved**, **rejected**, **investigation launched**)
    - Use *italics* for controversial or unresolved issues
-
-7. Include **front matter** at the top of the file using this structure. Tags should be short (1–3 words), lowercase, and focused on key themes:
-
-   ```md
-   ---
-   title: Title here
-   description: Description here
-   tags:
-     - tag here
-     - another tag here
-   ---
 
 **Name Handling Instructions**:
 1. If a name appears to be clearly mistranscribed, you are allowed to correct it using your knowledge of current Kenyan political figures (e.g. MPs, Senators, CSs, Judiciary officials, or Executive members).
@@ -70,6 +59,7 @@ Examples:
 ## Major Participants
 - {{Use general terms unless a name is clearly known and accurate}}
 - The Speaker, an MP, a senator, the Cabinet Secretary, the Auditor General, etc.
+- Provide some context for each participant and their contribution where possible.
 
 ## Key Moments
 - {{HH:MM:SS}} {{Notable quote, event, or procedural action if timestamp is known}}

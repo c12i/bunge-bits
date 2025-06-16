@@ -224,16 +224,20 @@ async fn summarize_streams(
             TRANSCRIPT_CHUNK_DELIMITER,
             {
                 let openai = openai.clone();
+                let stream = stream.clone();
                 move |chunk, ctx| {
                     let openai = openai.clone();
-                    Box::pin(async move { summarize_chunk(chunk, ctx, &openai).await })
+                    let stream = stream.clone();
+                    Box::pin(async move { summarize_chunk(chunk, &stream, ctx, &openai).await })
                 }
             },
             {
                 let openai = openai.clone();
+                let stream = stream.clone();
                 move |summaries| {
                     let openai = openai.clone();
-                    Box::pin(async move { combine_summaries(summaries, &openai).await })
+                    let stream = stream.clone();
+                    Box::pin(async move { combine_summaries(summaries, &stream, &openai).await })
                 }
             },
         )
@@ -252,6 +256,7 @@ async fn summarize_streams(
 #[tracing::instrument(skip(chunk, context, openai))]
 async fn summarize_chunk(
     chunk: String,
+    stream: &Stream,
     context: Option<Arc<String>>,
     openai: &OpenAiClient,
 ) -> anyhow::Result<String> {
@@ -291,7 +296,11 @@ Based on the transcript chunk, please summarize it based on the instructions you
                 name: None,
             },
             ChatMessage::User {
-                content: ChatMessageContent::Text(include_str!("../prompts/user_0.txt").into()),
+                content: ChatMessageContent::Text(
+                    include_str!("../prompts/user_0.txt")
+                        .replace("${{TITLE}}", &stream.title)
+                        .replace("${{DATE}}", &stream.streamed_date),
+                ),
                 name: None,
             },
             ChatMessage::User {
@@ -345,6 +354,7 @@ Based on the transcript chunk, please summarize it based on the instructions you
 #[tracing::instrument(skip(openai, summaries))]
 async fn combine_summaries(
     summaries: Vec<String>,
+    stream: &Stream,
     openai: &OpenAiClient,
 ) -> anyhow::Result<String> {
     let summaries = summaries.join("\n");
@@ -368,7 +378,11 @@ Summaries:
                 name: None,
             },
             ChatMessage::User {
-                content: ChatMessageContent::Text(include_str!("../prompts/user_0.txt").into()),
+                content: ChatMessageContent::Text(
+                    include_str!("../prompts/user_0.txt")
+                        .replace("${{TITLE}}", &stream.title)
+                        .replace("${{DATE}}", &stream.streamed_date),
+                ),
                 name: None,
             },
             ChatMessage::User {

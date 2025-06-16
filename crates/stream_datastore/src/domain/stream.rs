@@ -69,14 +69,14 @@ impl Stream {
     ///
     /// This function searches for specific keywords in the title to identify
     /// the appropriate StreamCategory.
-    pub fn category(&self) -> Option<StreamCategory> {
+    pub fn category(&self) -> StreamCategory {
         if self.title.to_lowercase().contains("national assembly") {
-            return Some(StreamCategory::NationalAssembly);
+            return StreamCategory::NationalAssembly;
         }
         if self.title.to_lowercase().contains("senate") {
-            return Some(StreamCategory::Senate);
+            return StreamCategory::Senate;
         }
-        None
+        StreamCategory::Other
     }
 }
 
@@ -84,6 +84,7 @@ impl Stream {
 pub enum StreamCategory {
     NationalAssembly,
     Senate,
+    Other,
 }
 
 impl Display for StreamCategory {
@@ -91,6 +92,7 @@ impl Display for StreamCategory {
         match self {
             StreamCategory::NationalAssembly => write!(f, "National Assembly"),
             StreamCategory::Senate => write!(f, "Senate"),
+            StreamCategory::Other => write!(f, "Other"),
         }
     }
 }
