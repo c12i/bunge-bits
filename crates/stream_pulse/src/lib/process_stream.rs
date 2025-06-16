@@ -253,7 +253,7 @@ async fn summarize_streams(
     Ok(())
 }
 
-#[tracing::instrument(skip(chunk, context, openai))]
+#[tracing::instrument(skip(chunk, stream, context, openai))]
 async fn summarize_chunk(
     chunk: String,
     stream: &Stream,
@@ -351,7 +351,7 @@ Based on the transcript chunk, please summarize it based on the instructions you
     }
 }
 
-#[tracing::instrument(skip(openai, summaries))]
+#[tracing::instrument(skip(stream, summaries, openai))]
 async fn combine_summaries(
     summaries: Vec<String>,
     stream: &Stream,
