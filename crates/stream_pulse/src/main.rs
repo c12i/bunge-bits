@@ -29,12 +29,10 @@ use tokio_cron_scheduler::{JobBuilder, JobScheduler};
 
 // Should run every ~12~ n hours
 const CRON_EXPR: &str = "0 0 */4 * * *";
-// const CRON_EXPR: &str = "*/15 * * * * *";
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv()?;
-    init_tracing_subscriber()?;
 
     let _guard = sentry::init((
         std::env::var("SENTRY_DSN").expect("SENTRY_DSN env var not set"),
@@ -44,6 +42,8 @@ async fn main() -> anyhow::Result<()> {
             ..Default::default()
         },
     ));
+
+    init_tracing_subscriber()?;
 
     let mut scheduler = JobScheduler::new().await?;
 
