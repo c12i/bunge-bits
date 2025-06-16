@@ -14,7 +14,7 @@ use openai_dive::v1::{
     },
 };
 use openai_dive::v1::{
-    models::FlagshipModel,
+    models::{FlagshipModel, TranscriptionModel},
     resources::{
         audio::{AudioOutputFormat, AudioTranscriptionParametersBuilder},
         shared::FileUpload,
@@ -169,7 +169,7 @@ async fn transcribe_streams(streams: &[Stream], openai: &OpenAiClient) -> anyhow
 async fn transcribe_audio(audio_path: PathBuf, openai: &OpenAiClient) -> anyhow::Result<String> {
     let params = AudioTranscriptionParametersBuilder::default()
         .file(FileUpload::File(format!("{}", audio_path.display())))
-        .model(FlagshipModel::Gpt4OAudioPreview.to_string())
+        .model(TranscriptionModel::Whisper1.to_string())
         .response_format(AudioOutputFormat::Text)
         .build()?;
 
@@ -282,7 +282,7 @@ Based on the transcript chunk, please summarize it based on the instructions you
             )
         });
 
-    // TODO: Add websearch capability
+    // TODO: Add web-search capability
     let parameters = ChatCompletionParametersBuilder::default()
         .model(FlagshipModel::Gpt4O.to_string())
         .messages(vec![
@@ -359,7 +359,7 @@ Summaries:
         summaries
     );
 
-    // TODO: Add websearch capability
+    // TODO: Add web-search capability
     let parameters = ChatCompletionParametersBuilder::default()
         .model(FlagshipModel::Gpt4O.to_string())
         .messages(vec![
