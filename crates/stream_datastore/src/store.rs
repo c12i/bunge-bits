@@ -30,7 +30,8 @@ impl DataStore {
                 stream_timestamp TIMESTAMPTZ NOT NULL,
                 duration TEXT NOT NULL,
                 summary_md TEXT,
-                timestamp_md TEXT
+                timestamp_md TEXT,
+                is_published BOOLEAN NOT NULL DEFAULT FALSE
             )
             "#,
         )

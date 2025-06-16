@@ -8,7 +8,7 @@ use stream_pulse::{fetch_and_process_streams, tracing::init_tracing_subscriber};
 use tokio_cron_scheduler::{JobBuilder, JobScheduler};
 
 // Should run every ~12~ n hours
-const CRON_EXPR: &str = "0 0 */4 * * *";
+const CRON_EXPR: &str = "0 0 */2 * * *";
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
