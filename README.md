@@ -15,13 +15,13 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
 ## Development Progress
 
 - [x] `ytInitialData` parser: Parsing logic that parses scraped data from youtube
-- [x] Data store: ~Sqlite~ Postgres database bindings for storing, retrieving and modifying stream data
+- [x] `stream_datastore`: ~Sqlite~ Postgres database bindings for storing, retrieving and modifying stream data
 - [x] `yt-dlp` bindings: Bindings to interact with the yt-dlp cli as well as some utilities to interact with video and vtt data
 - [x] `ffmpeg` bindings: Bindings to complement the Ytdlp bindings for the purpose of processing audio
-- [x] Stream pulse: A cron job that periodically fetches and processes streams
-- [x] Stream digest: Functions that make it possible to efficiently process transcripts in chunks
-- [x] LLM Service: A service that interacts with OpenAI's Whisper and ChatGPT 4o to handle transcribing and summarizing the downloaded audio
-- [x] Manual publish flag – `is_published` field added to each stream for editorial control
+- [x] `stream_pulse_cron`: A cron job that periodically fetches and processes streams
+- [x] `stream_digest`: Functions that make it possible to efficiently process transcripts in chunks
+- [x] LLMs: A service that interacts with OpenAI's Whisper and ChatGPT 4o to handle transcribing and summarizing the downloaded audio
+- [x] Manual publish flag – `is_published` field added to each stream for editorial control. Yes it sucks, but it's necessary for now since LLMs don't seem to get everything 100% right. Only a temporary step for now though.
 - [ ] Web App: The end user interface that will display the summarized content [#3](https://github.com/c12i/bunge-bits/issues/3)
 - [ ] Email Newsletter – Periodic delivery of new summaries to subscribers
 
