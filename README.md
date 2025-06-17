@@ -25,6 +25,14 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
 - [ ] Web App: The end user interface that will display the summarized content [#3](https://github.com/c12i/bunge-bits/issues/3)
 - [ ] Email Newsletter – Periodic delivery of new summaries to subscribers
 
+## Development Setup
+
+- [`stream_pulse`](./crates/stream_pulse/README.md#development-setup)
+
+## Contribution
+
+See the [contribution guideline](./CONTRIBUTING.md).
+
 ## Blog Posts
 
 - [Building bunge-bits, an AI-Powered Summary Pipeline for the Parliament of Kenya](https://collinsmuriuki.xyz/building-bunge-bits/)
