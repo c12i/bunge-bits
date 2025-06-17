@@ -15,7 +15,7 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
 ## Development Progress
 
 - [x] ytInitialData parser: Parsing logic that parses scraped data from youtube
-- [x] Data store: Sqlite database bindings for storing, retreivig and modifying stream data
+- [x] Data store: ~Sqlite~ Postgres database bindings for storing, retreivig and modifying stream data
 - [x] `yt-dlp` bindings: Bindings to interact with the yt-dlp cli as well as some utilities to interact with video and vtt data
 - [x] `ffmpeg` bindings: Fffmpeg bindings to complement the Ytdlp bindings for the purpose of processing audio
 - [x] Stream pulse: A cron job that periodically fetches and processes streams
