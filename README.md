@@ -22,3 +22,7 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
 - [x] Stream digest: Functions that make it possible to efficiently process vtt file content in chunks
 - [x] LLM Service: A service that interacts with OpenAI's ChatGPT (or any other LLM) to handle summarizing the downloaded audio
 - [ ] Web App: The end user interface that will display the summarized content [#3](https://github.com/c12i/bunge-bits/issues/3)
+
+## Blog Posts
+
+- [Building bunge-bits, an AI-Powered Summary Pipeline for the Parliament of Kenya](https://collinsmuriuki.xyz/building-bunge-bits/)
