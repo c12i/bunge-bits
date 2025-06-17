@@ -1,7 +1,9 @@
 [package]
 name = "stream_digest"
 version = "0.1.0"
-edition = "2021"
+authors.workspace = true
+edition.workspace = true
+categories.workspace = true
 
 [dependencies]
 anyhow = { workspace = true }

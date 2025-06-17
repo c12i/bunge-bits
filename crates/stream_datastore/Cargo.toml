@@ -1,8 +1,8 @@
 [package]
 name = "stream_datastore"
 version = "0.1.0"
-edition = "2021"
-authors = ["c12i <hello@collinsmuriuki.xyz>"]
+authors.workspace = true
+edition.workspace = true
 
 [lib]
 name = "stream_datastore"

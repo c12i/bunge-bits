@@ -6,6 +6,20 @@ members = [
   "crates/ytdlp_bindings",
 ]
 
+[workspace.package]
+authors = ["c12i <hello@c12i.xyz>"]
+edition = "2021"
+repository = "https://github.com/c12i/bunge-bits"
+categories = [
+  "web-programming",
+  "asynchronous",
+  "parser-implementations",
+  "database",
+  "command-line-utilities",
+]
+license = "MIT"
+license-file = "LICENSE"
+
 resolver = "2"
 
 [workspace.dependencies]

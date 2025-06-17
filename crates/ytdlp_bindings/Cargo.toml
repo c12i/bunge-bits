@@ -1,10 +1,11 @@
 [package]
 name = "ytdlp_bindings"
 description = "ytdlp cli bindings"
-authors = ["c12i <hello@collinsmuriuki.xyz>"]
+authors = ["c12i <hello@c12i.xyz>"]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+categories = ["asynchronous"]
 
 [dependencies]
 anyhow = "1.0.89"
@@ -12,7 +13,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
-which = "7.0.3"
+which = "8.0.0"
 webvtt-parser = { version = "1.0.0-beta.1", optional = true }
 
 [build-dependencies]

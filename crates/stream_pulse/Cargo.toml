@@ -1,8 +1,9 @@
 [package]
 name = "stream_pulse"
 version = "0.1.0"
-authors = ["c12i <hello@collinsmuriuki.xyz>"]
-edition = "2021"
+authors.workspace = true
+edition.workspace = true
+categories.workspace = true
 
 [[bin]]
 name = "stream_pulse_cron"
@@ -37,4 +38,4 @@ tracing-subscriber = { version = "0.3", features = [
 tracing-bunyan-formatter = "0.3"
 dotenvy = "0.15.7"
 sentry = "0.39.0"
-sentry-tracing = "0.39.0"
+sentry-tracing = "0.40.0"
