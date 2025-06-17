@@ -4,7 +4,7 @@
 
 # Bunge Bits
 
-Bunge Bits provides convenient summaries of Kenyan National Assembly and Senate seatings, making legislative information more accessible and digestible.
+Bunge Bits provides convenient summaries of Kenyan National Assembly and Senate proceedings, making legislative information more accessible and digestible.
 
 ## Motivations
 
@@ -14,15 +14,26 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
 
 ## Development Progress
 
-- [x] ytInitialData parser: Parsing logic that parses scraped data from youtube
-- [x] Data store: ~Sqlite~ Postgres database bindings for storing, retreivig and modifying stream data
+- [x] `ytInitialData` parser: Parsing logic that parses scraped data from youtube
+- [x] Data store: ~Sqlite~ Postgres database bindings for storing, retrieving and modifying stream data
 - [x] `yt-dlp` bindings: Bindings to interact with the yt-dlp cli as well as some utilities to interact with video and vtt data
-- [x] `ffmpeg` bindings: Fffmpeg bindings to complement the Ytdlp bindings for the purpose of processing audio
+- [x] `ffmpeg` bindings: Bindings to complement the Ytdlp bindings for the purpose of processing audio
 - [x] Stream pulse: A cron job that periodically fetches and processes streams
-- [x] Stream digest: Functions that make it possible to efficiently process vtt file content in chunks
-- [x] LLM Service: A service that interacts with OpenAI's ChatGPT (or any other LLM) to handle summarizing the downloaded audio
+- [x] Stream digest: Functions that make it possible to efficiently process transcripts in chunks
+- [x] LLM Service: A service that interacts with OpenAI's Whisper and ChatGPT 4o to handle transcribing and summarizing the downloaded audio
+- [x] Manual publish flag – `is_published` field added to each stream for editorial control
 - [ ] Web App: The end user interface that will display the summarized content [#3](https://github.com/c12i/bunge-bits/issues/3)
+- [ ] Email Newsletter – Periodic delivery of new summaries to subscribers
 
 ## Blog Posts
 
 - [Building bunge-bits, an AI-Powered Summary Pipeline for the Parliament of Kenya](https://collinsmuriuki.xyz/building-bunge-bits/)
+
+## Support the Project
+
+Your support helps cover:
+
+- Cloud hosting and database infrastructure
+- OpenAI Whisper + GPT 4o API usage
+
+Sponsorship is available via [Buy Me a Coffee](https://buymeacoffee.com/c12i). Every bit helps to keep Kenyan legislative content accessible to all.
