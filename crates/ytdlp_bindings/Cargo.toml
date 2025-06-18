@@ -7,6 +7,10 @@ edition = "2021"
 license = "MIT"
 categories = ["asynchronous"]
 
+[lib]
+name = "ytdlp_bindings"
+path = "./src/lib.rs"
+
 [dependencies]
 anyhow = "1.0.89"
 serde = { workspace = true }

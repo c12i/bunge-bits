@@ -1,22 +1,27 @@
+# base image
 FROM rust:1.87 AS chef
 RUN cargo install cargo-chef
 WORKDIR /app
 
-# --- First stage: gather dependency graph ---
 FROM chef AS planner
-COPY . .
+# copy only the manifests to generate "workspace-aware" recipe 
+COPY Cargo.toml Cargo.lock ./
+COPY crates/stream_pulse/Cargo.toml crates/stream_pulse/Cargo.toml
+COPY crates/stream_datastore/Cargo.toml crates/stream_datastore/Cargo.toml
+COPY crates/stream_digest/Cargo.toml crates/stream_digest/Cargo.toml
+COPY crates/ytdlp_bindings/Cargo.toml crates/ytdlp_bindings/Cargo.toml
+# generate reproducible build plan
 RUN cargo chef prepare --recipe-path recipe.json
 
-# --- Second stage: cache dependencies only ---
 FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
-# Copy actual source code
+# copy the full workspace for final build
 COPY . .
-RUN cargo build --release --package stream-pulse-cron
+RUN cargo build --release --bin stream-pulse-cron
 
-# --- Final stage: runtime image ---
+# runtime image
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/release/stream-pulse-cron /usr/local/bin/stream-pulse-cron

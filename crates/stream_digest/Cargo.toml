@@ -5,6 +5,10 @@ authors.workspace = true
 edition.workspace = true
 categories.workspace = true
 
+[lib]
+name = "stream_digest"
+path = "./src/lib.rs"
+
 [dependencies]
 anyhow = { workspace = true }
 
