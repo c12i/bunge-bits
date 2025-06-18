@@ -7,8 +7,8 @@ use futures::FutureExt;
 use stream_pulse::{fetch_and_process_streams, tracing::init_tracing_subscriber};
 use tokio_cron_scheduler::{JobBuilder, JobScheduler};
 
-// Should run every ~12~ n hours
-const CRON_EXPR: &str = "0 0 */2 * * *";
+// Should run every ~4~ hours
+const CRON_EXPR: &str = "0 0 */4 * * *";
 // Maximum streams that can be processed in a run
 const MAX_STREAMS_TO_PROCESS: usize = 3;
 
