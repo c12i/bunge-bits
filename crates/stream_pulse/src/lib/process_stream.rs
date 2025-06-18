@@ -36,16 +36,14 @@ const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChan
 // Work directory - basically where all artifacts will be stored
 const WORKDIR: &str = "/var/tmp/bunge-bits";
 const TRANSCRIPT_CHUNK_DELIMITER: &str = "----END_OF_CHUNK----";
-// Maximum streams that can be processed in a run
-const MAX_STREAMS_TO_PROCESS: usize = 3;
 
 #[tracing::instrument]
-pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
+pub async fn fetch_and_process_streams(max_streams: usize) -> anyhow::Result<()> {
     let client = &CLIENT;
     let ytdlp = &YTDLP;
     let openai = &OPENAI;
 
-    let db_url = std::env::var("DATABASE_URL").context("DATABASE_URL not set")?;
+    let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set");
     let db = DataStore::init(&db_url)
         .await
         .context("Failed to initialize database")?;
@@ -59,7 +57,8 @@ pub async fn fetch_and_process_streams() -> anyhow::Result<()> {
             // This is where initially downloaded audio by yt-dlp is saved
             let audio_download_path = PathBuf::from(format!("{WORKDIR}/audio"));
 
-            let mut streams = sort_and_filter_existing_streams(&db, &mut streams).await;
+            let mut streams =
+                sort_and_filter_existing_streams(max_streams, &db, &mut streams).await;
 
             if streams.is_empty() {
                 tracing::info!("No streams to process at this time");
@@ -461,6 +460,7 @@ pub fn chat_completions_text_from_response(
 
 /// Filter and sort streams that already exist in the database based on their `video_id`.
 pub async fn sort_and_filter_existing_streams(
+    max_streams: usize,
     db: &DataStore,
     streams: &mut [Stream],
 ) -> Vec<Stream> {
@@ -486,7 +486,7 @@ pub async fn sort_and_filter_existing_streams(
     });
 
     // return the first 3 streams to avoid overloading system
-    filtered.into_iter().take(MAX_STREAMS_TO_PROCESS).collect()
+    filtered.into_iter().take(max_streams).collect()
 }
 
 /// Try to extract wait time from potential 429 error response

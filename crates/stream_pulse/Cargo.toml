@@ -6,8 +6,8 @@ edition.workspace = true
 categories.workspace = true
 
 [[bin]]
-name = "stream_pulse_cron"
-path = "./src/main.rs"
+name = "stream-pulse-cron"
+path = "./src/bin/stream-pulse-cron.rs"
 
 [lib]
 name = "stream_pulse"
@@ -37,5 +37,8 @@ tracing-subscriber = { version = "0.3", features = [
 ] }
 tracing-bunyan-formatter = "0.3"
 dotenvy = "0.15.7"
-sentry = "0.39.0"
+sentry = "0.40.0"
 sentry-tracing = "0.40.0"
+
+[dev-dependencies]
+clap = { version = "4.5.40", features = ["derive"] }

@@ -14,8 +14,22 @@ SENTRY_DSN="<optional_sentry_dsn>" # can be omitted for local development
 
 You can define these variables directly in your shell or in a `.env` file placed at the root of the Cargo workspace.
 
-Running the binary:
+## Running the CLI
+
+For quick local testing and development, run the `dev-cli` example:
 
 ```bash
-cargo run --package stream_pulse_cron
+cargo run --example dev-cli -- fetch-and-process-streams --max-streams 2
 ```
+
+The `--max-streams` flag is optional (default: 3). This CLI is intended for local development, prototyping, or ad-hoc tasks. It is not used in production.
+
+# Running the Production Cron Workflow
+
+To run the actual scheduled production workflow:
+
+```bash
+cargo run --package stream-pulse-cron
+```
+
+This binary is designed to run as a background job (e.g. via cron or systemd timer) and handles automated stream fetching and summarization.

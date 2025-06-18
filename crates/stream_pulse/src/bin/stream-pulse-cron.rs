@@ -9,6 +9,8 @@ use tokio_cron_scheduler::{JobBuilder, JobScheduler};
 
 // Should run every ~12~ n hours
 const CRON_EXPR: &str = "0 0 */2 * * *";
+// Maximum streams that can be processed in a run
+const MAX_STREAMS_TO_PROCESS: usize = 3;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
@@ -34,9 +36,10 @@ async fn main() -> anyhow::Result<()> {
         .with_run_async(Box::new(|uuid, _| {
             Box::pin(async move {
                 tracing::info!(job_id = %uuid, "Running cron job: {}", uuid);
-                let result = std::panic::AssertUnwindSafe(fetch_and_process_streams())
-                    .catch_unwind()
-                    .await;
+                let result =
+                    std::panic::AssertUnwindSafe(fetch_and_process_streams(MAX_STREAMS_TO_PROCESS))
+                        .catch_unwind()
+                        .await;
 
                 if let Err(err) = result {
                     tracing::error!(error = ?err, "Job panicked");

@@ -5,6 +5,7 @@ members = [
   "crates/stream_pulse",
   "crates/ytdlp_bindings",
 ]
+resolver = "2"
 
 [workspace.package]
 authors = ["c12i <hello@c12i.xyz>"]
@@ -20,7 +21,6 @@ categories = [
 license = "MIT"
 license-file = "LICENSE"
 
-resolver = "2"
 
 [workspace.dependencies]
 anyhow = "1.0"
