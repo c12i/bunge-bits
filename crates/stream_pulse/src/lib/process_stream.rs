@@ -43,7 +43,7 @@ pub async fn fetch_and_process_streams(max_streams: usize) -> anyhow::Result<()>
     let ytdlp = &YTDLP;
     let openai = &OPENAI;
 
-    let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not set");
+    let db_url = std::env::var("DATABASE_URL").context("DATABASE_URL not set")?;
     let db = DataStore::init(&db_url)
         .await
         .context("Failed to initialize database")?;
