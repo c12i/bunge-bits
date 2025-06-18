@@ -28,5 +28,6 @@ COPY --from=builder /app/target/release/stream-pulse-cron /usr/local/bin/stream-
 WORKDIR /app
 ENV OPENAI_API_KEY= \
   DATABASE_URL= \
-  SENTRY_DSN=
+  SENTRY_DSN= \
+  MAX_STREAMS_TO_PROCESS= 
 CMD ["stream-pulse-cron"]

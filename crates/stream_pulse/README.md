@@ -10,6 +10,7 @@ To run the `stream_pulse_cron` binary, set the following environment variables:
 OPENAI_API_KEY="<your_openai_api_key>"
 DATABASE_URL="<your_postgres_database_url>"
 SENTRY_DSN="<optional_sentry_dsn>" # can be omitted for local development
+MAX_STREAMS_TO_PROCESS=3 # optional config of the maxim number of streams that can be processed in a given run
 ```
 
 You can define these variables directly in your shell or in a `.env` file placed at the root of the Cargo workspace.

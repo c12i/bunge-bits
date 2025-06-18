@@ -1,23 +1,22 @@
 //! # Cron Job Workflow for Parliament of Kenya Channel Streams
 //!
-//! A cron job that runs every 12 hours to fetch and process
-//! archived streams from the Parliament of Kenya YouTube channel.
+//! A cron job that runs every 4 hours to fetch and process archived streams from the Parliament of Kenya's YouTube channel.
+//!
+//! Potential panics from the `fetch_and_process_streams` entry-point are handled gracefully
 
 use futures::FutureExt;
 use stream_pulse::{fetch_and_process_streams, tracing::init_tracing_subscriber};
 use tokio_cron_scheduler::{JobBuilder, JobScheduler};
 
-// Should run every ~4~ hours
+// Should run every 4 hours
 const CRON_EXPR: &str = "0 0 */4 * * *";
-// Maximum streams that can be processed in a run
-const MAX_STREAMS_TO_PROCESS: usize = 3;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv()?;
 
     let _guard = sentry::init((
-        std::env::var("SENTRY_DSN").expect("SENTRY_DSN env var not set"),
+        std::env::var("SENTRY_DSN").unwrap_or_else(|_| String::new()),
         sentry::ClientOptions {
             release: sentry::release_name!(),
             environment: Some("production".into()),
@@ -35,11 +34,17 @@ async fn main() -> anyhow::Result<()> {
         .with_schedule(CRON_EXPR)?
         .with_run_async(Box::new(|uuid, _| {
             Box::pin(async move {
-                tracing::info!(job_id = %uuid, "Running cron job: {}", uuid);
-                let result =
-                    std::panic::AssertUnwindSafe(fetch_and_process_streams(MAX_STREAMS_TO_PROCESS))
-                        .catch_unwind()
-                        .await;
+                // Maximum streams that can be processed in a run
+                let max_streams = std::env::var("MAX_STREAMS_TO_PROCESS")
+                    .ok()
+                    .and_then(|v| v.parse::<usize>().ok())
+                    .unwrap_or(3);
+
+                tracing::info!(job_id = %uuid, max_streams, "Running cron job: {}", uuid);
+
+                let result = std::panic::AssertUnwindSafe(fetch_and_process_streams(max_streams))
+                    .catch_unwind()
+                    .await;
 
                 if let Err(err) = result {
                     tracing::error!(error = ?err, "Job panicked");
