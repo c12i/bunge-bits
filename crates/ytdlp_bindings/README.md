@@ -99,23 +99,23 @@ you’ll need to pass a valid `cookies.txt` file to `yt-dlp`.
 
 ### Exporting cookies.txt using browser-cookie3
 
-`browser-cookie3` is a Python tool that extracts and decrypts browser cookies directly from Chrome or Firefox on your machine.
+[`browser-cookie3`](https://github.com/borisbabic/browser_cookie3) is a Python tool that extracts and decrypts browser cookies directly from Chrome, Firefox or any other browser on your machine.
 
-- Install it locally:
+- Install it locally (requires Python and pip installation):
 
-```
+```bash
 pip install browser-cookie3
 ```
 
 - Export cookies for YouTube:
 
-```
-python -m browser_cookie3 chrome --domain youtube.com > cookies.txt
+```bash
+echo -e ".youtube.com\tTRUE\t/\tFALSE\t2147385600\tSID\t$(browser-cookie --chrome youtube.com SID)" > cookies.txt
 ```
 
-Replace chrome with firefox if needed.
+Replace chrome with your browser of choice if needed.
 
-This outputs a cookies.txt file in the Netscape format, compatible with yt-dlp.
+This outputs a `cookies.txt` file in the Netscape format, compatible with `yt-dlp`.
 
 > [!TIP]
 > Use a separate Google account for scraping if you're concerned about exposing personal cookies.

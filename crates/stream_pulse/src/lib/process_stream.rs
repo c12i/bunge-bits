@@ -28,7 +28,12 @@ use ytdlp_bindings::{AudioProcessor, YtDlp};
 use crate::{extract_json_from_script, parse_streams};
 
 static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
-static YTDLP: LazyLock<YtDlp> = LazyLock::new(|| YtDlp::new().expect("Failed to initialize YtDlp"));
+static YTDLP: LazyLock<YtDlp> = LazyLock::new(|| {
+    let cookies_path = std::env::var("YTDLP_COOKIES_PATH")
+        .map(PathBuf::from)
+        .expect("YTDLP_COOKIES_PATH env var is not set");
+    YtDlp::new_with_cookies(Some(cookies_path)).expect("Failed to initialize YtDlp")
+});
 static OPENAI: LazyLock<OpenAiClient> = LazyLock::new(openai_dive::v1::api::Client::new_from_env);
 
 //  Parliament of Kenya Channel Stream URL
