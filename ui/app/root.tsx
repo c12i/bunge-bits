@@ -5,7 +5,7 @@ import {
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
-import type { LinksFunction } from "@remix-run/node";
+import type { LinksFunction, MetaFunction } from "@remix-run/node";
 
 import "./tailwind.css";
 
@@ -16,18 +16,36 @@ export const links: LinksFunction = () => [
     href: "https://fonts.gstatic.com",
     crossOrigin: "anonymous",
   },
+];
+
+export const meta: MetaFunction = () => [
+  { charset: "utf-8" },
+  { name: "viewport", content: "width=device-width, initial-scale=1" },
+  { title: "Bunge Bits - Legislative Summaries for the Parliament of Kenya" },
   {
-    rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+    name: "description",
+    content:
+      "Convenient summaries of Kenyan National Assembly and Senate proceedings, making legislative information more accessible and digestible.",
   },
+  { name: "author", content: "Bunge Bits" },
+  {
+    property: "og:title",
+    content: "Bunge Bits - Legislative Summaries for the Parliement of Kenya",
+  },
+  {
+    property: "og:description",
+    content:
+      "Convenient summaries of Kenyan National Assembly and Senate proceedings, making legislative information more accessible and digestible.",
+  },
+  { property: "og:type", content: "website" },
+  { name: "twitter:card", content: "summary_large_image" },
+  { name: "twitter:site", content: "@bungebits" },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
       </head>
