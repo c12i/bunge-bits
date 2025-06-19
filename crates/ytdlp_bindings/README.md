@@ -89,36 +89,50 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Using `cookies.txt` for Authenticated YouTube Downloads
 
-Some YouTube videos require authentication to access. If you encounter errors like:
+Some YouTube videos (e.g. livestreams, age-restricted, or member-only) require authentication. To download them using yt-dlp, you need to provide a valid cookies.txt file.
 
-```txt
-Sign in to confirm you're not a bot. Use --cookies-from-browser or --cookies...
+> [!WARNING]
+> Downloading videos while authenticated carries risk. Use a throwaway account and moderate your request rate.
+
+### Recommended Approach: Use a Throwaway Account + Browser Extension
+
+This method gives you the most stable cookies and avoids common rotation issues.
+
+1. Install trusted extension
+
+- Chrome/ Chromium based browsers: [Get cookies.txt LOCALLY](https://chrome.google.com/webstore/detail/get-cookiestxt-locally/jgbbilmfbammlbbhmmgaagdkbkepnijn)
+- Firefox: [cookies.txt](https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/)
+
+> [!WARNING]
+> Avoid the extension called “Get cookies.txt” (without “LOCALLY”) — it was flagged as malware and removed.
+
+2. Create a throwaway Google account - This avoids risking your main account.
+
+3. Log in via a clean incognito/private session - Open a private/incognito window, log in to your throwaway YouTube account and only open
+
 ```
+https://www.youtube.com/robots.txt
+```
+
+This helps lock your session cookies without triggering rotation by YouTube’s frontend.
+
+4. Export the cookies
+
+While still on the `robots.txt` page, click the extension icon and export cookies for `youtube.com`.
+Save the file as cookies.txt.
+
+Your file should look something like this
+
+```
+# Netscape HTTP Cookie File
+.youtube.com	TRUE	/	FALSE	2147385600	SID	...
+.youtube.com	TRUE	/	FALSE	2147385600	HSID	...
+...
+```
+
+5. Close the incognito window - To prevent further cookie rotation
 
 you’ll need to pass a valid `cookies.txt` file to `yt-dlp`.
-
-### Exporting cookies.txt using browser-cookie3
-
-[`browser-cookie3`](https://github.com/borisbabic/browser_cookie3) is a Python tool that extracts and decrypts browser cookies directly from Chrome, Firefox or any other browser on your machine.
-
-- Install it locally (requires Python and pip installation):
-
-```bash
-pip install browser-cookie3
-```
-
-- Export cookies for YouTube:
-
-```bash
-echo -e ".youtube.com\tTRUE\t/\tFALSE\t2147385600\tSID\t$(browser-cookie --chrome youtube.com SID)" > cookies.txt
-```
-
-Replace chrome with your browser of choice if needed.
-
-This outputs a `cookies.txt` file in the Netscape format, compatible with `yt-dlp`.
-
-> [!TIP]
-> Use a separate Google account for scraping if you're concerned about exposing personal cookies.
 
 ### Using the cookies in your application (yt-dlp-vendored mode)
 
@@ -139,6 +153,8 @@ ytdlp.download_audio(
     "/var/tmp/bunge-bits/audio/%(title)s.%(ext)s"
 )?;
 ```
+
+6. Save this `cookies.txt` file at the root of the repo (It's gitignored, don't worry) for use with `ytdlp-bindings` when initializing with `YtDlp::new_with_cookies`
 
 ## Contributing
 
