@@ -26,7 +26,6 @@ impl DataStore {
                 video_id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
                 view_count TEXT NOT NULL,
-                streamed_date TEXT NOT NULL,
                 stream_timestamp TIMESTAMPTZ NOT NULL,
                 duration TEXT NOT NULL,
                 summary_md TEXT,
@@ -79,15 +78,14 @@ impl DataStore {
             let result = sqlx::query(
                 r#"
                 INSERT INTO streams (
-                    video_id, title, view_count, streamed_date,
+                    video_id, title, view_count,
                     stream_timestamp, duration, summary_md, timestamp_md
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7)
                 "#,
             )
             .bind(&stream.video_id)
             .bind(&stream.title)
             .bind(&stream.view_count)
-            .bind(&stream.streamed_date)
             .bind(timestamp)
             .bind(&stream.duration)
             .bind(&stream.summary_md)

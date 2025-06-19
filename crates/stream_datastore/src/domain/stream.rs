@@ -8,6 +8,8 @@ pub struct Stream {
     pub video_id: String,
     pub title: String,
     pub view_count: String,
+    /// Initially fetched stream date from youtube in "time ago" format. This is easily expired when persisted, hence
+    /// the need to infer a timestamp using the `timestamp_from_time_ago` function
     pub streamed_date: String,
     pub duration: String,
     pub summary_md: Option<String>,

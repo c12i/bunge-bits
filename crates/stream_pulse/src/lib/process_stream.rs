@@ -298,7 +298,13 @@ Based on the transcript chunk, please summarize it based on the instructions you
                 content: ChatMessageContent::Text(
                     include_str!("../prompts/user_0.txt")
                         .replace("${{TITLE}}", &stream.title)
-                        .replace("${{DATE}}", &stream.streamed_date),
+                        .replace(
+                            "${{DATE}}",
+                            &stream
+                                .timestamp_from_time_ago()
+                                .and_then(|v| Some(v.to_string()))
+                                .unwrap_or_else(|| "${{DATE: inferred from summary}}".to_string()),
+                        ),
                 ),
                 name: None,
             },
@@ -380,7 +386,13 @@ Summaries:
                 content: ChatMessageContent::Text(
                     include_str!("../prompts/user_0.txt")
                         .replace("${{TITLE}}", &stream.title)
-                        .replace("${{DATE}}", &stream.streamed_date),
+                        .replace(
+                            "${{DATE}}",
+                            &stream
+                                .timestamp_from_time_ago()
+                                .and_then(|v| Some(v.to_string()))
+                                .unwrap_or_else(|| "${{DATE: inferred from summary}}".to_string()),
+                        ),
                 ),
                 name: None,
             },
