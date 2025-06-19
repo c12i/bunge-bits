@@ -14,6 +14,7 @@ const YTDLP_BINARY: &str = env!("YTDLP_BINARY");
 #[derive(Debug, Clone)]
 pub struct YtDlp {
     pub(crate) binary_path: PathBuf,
+    pub(crate) cookies_path: Option<PathBuf>,
 }
 
 impl YtDlp {
@@ -25,8 +26,22 @@ impl YtDlp {
     ///
     /// Returns `YtDlpError::BinaryNotFound` if the binary cannot be located.
     #[cfg(feature = "yt-dlp-vendored")]
-    #[tracing::instrument]
     pub fn new() -> Result<Self, YtDlpError> {
+        Self::new_with_cookies(None)
+    }
+
+    /// Creates a new `YtDlp` instance with optional cookies support, using a vendored binary.
+    ///
+    /// # Arguments
+    ///
+    /// * `cookies_path` - Optional path to a `cookies.txt` file for authenticated scraping.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`YtDlpError::BinaryNotFound`] if the binary is not found.
+    #[cfg(feature = "yt-dlp-vendored")]
+    #[tracing::instrument]
+    pub fn new_with_cookies(cookies_path: Option<PathBuf>) -> Result<Self, YtDlpError> {
         #[allow(clippy::const_is_empty)]
         let binary_path = if !YTDLP_BINARY.is_empty() {
             PathBuf::from(YTDLP_BINARY)
@@ -34,7 +49,10 @@ impl YtDlp {
             which::which("yt-dlp").map_err(|_| YtDlpError::BinaryNotFound("yt-dlp".to_string()))?
         };
 
-        Ok(YtDlp { binary_path })
+        Ok(YtDlp {
+            binary_path,
+            cookies_path,
+        })
     }
 
     /// Creates a new `YtDlp` instance with a custom binary path.
@@ -46,8 +64,23 @@ impl YtDlp {
     /// * `binary_path` - The path to the yt-dlp binary.
     #[cfg(not(feature = "yt-dlp-vendored"))]
     pub fn new<P: Into<PathBuf>>(binary_path: P) -> Self {
+        Self::new_with_cookies(binary_path, None)
+    }
+
+    /// Creates a new `YtDlp` instance with a custom binary and optional cookies path.
+    ///
+    /// # Arguments
+    ///
+    /// * `binary_path` - Path to the `yt-dlp` binary.
+    /// * `cookies_path` - Optional path to a `cookies.txt` file for authenticated scraping.
+    #[cfg(not(feature = "yt-dlp-vendored"))]
+    pub fn new_with_cookies<P1: Into<PathBuf>, P2: Into<PathBuf>>(
+        binary_path: P1,
+        cookies_path: Option<P2>,
+    ) -> Self {
         YtDlp {
             binary_path: binary_path.into(),
+            cookies_path: cookies_path.map(Into::into),
         }
     }
 
@@ -255,9 +288,18 @@ impl YtDlp {
         ])
     }
 
+    /// Runs the `yt-dlp` command with optional `--cookies` support.
+    ///
+    /// This method appends the cookies argument to the command if `cookies_path` is set.
     #[tracing::instrument(skip(self))]
     pub(crate) fn run_yt_dlp(&self, args: &[&str]) -> Result<(), YtDlpError> {
-        let output = Command::new(&self.binary_path).args(args).output()?;
+        let mut cmd = Command::new(&self.binary_path);
+
+        if let Some(ref cookies) = self.cookies_path {
+            cmd.arg("--cookies").arg(cookies);
+        }
+
+        let output = cmd.args(args).output()?;
 
         if output.status.success() {
             Ok(())
@@ -265,7 +307,7 @@ impl YtDlp {
             Err(YtDlpError::NonZeroExit {
                 command: self.binary_path.to_string_lossy().into(),
                 status: output.status.code().unwrap_or(-1),
-                output: String::from_utf8_lossy(&output.stdout.to_vec()).into(),
+                output: String::from_utf8_lossy(&output.stderr.to_vec()).into(),
             })
         }
     }

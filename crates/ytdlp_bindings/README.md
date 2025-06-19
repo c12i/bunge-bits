@@ -87,6 +87,59 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+## Using `cookies.txt` for Authenticated YouTube Downloads
+
+Some YouTube videos require authentication to access. If you encounter errors like:
+
+```txt
+Sign in to confirm you're not a bot. Use --cookies-from-browser or --cookies...
+```
+
+you’ll need to pass a valid `cookies.txt` file to `yt-dlp`.
+
+### Exporting cookies.txt using browser-cookie3
+
+`browser-cookie3` is a Python tool that extracts and decrypts browser cookies directly from Chrome or Firefox on your machine.
+
+- Install it locally:
+
+```
+pip install browser-cookie3
+```
+
+- Export cookies for YouTube:
+
+```
+python -m browser_cookie3 chrome --domain youtube.com > cookies.txt
+```
+
+Replace chrome with firefox if needed.
+
+This outputs a cookies.txt file in the Netscape format, compatible with yt-dlp.
+
+> [!TIP]
+> Use a separate Google account for scraping if you're concerned about exposing personal cookies.
+
+### Using the cookies in your application (yt-dlp-vendored mode)
+
+```rust
+use ytdlp_bindings::YtDlp;
+use std::path::PathBuf;
+
+let ytdlp = YtDlp::new_with_cookies(Some(PathBuf::from("/app/cookies.txt")))?;
+```
+
+This will automatically inject the --cookies /app/cookies.txt flag when running yt-dlp.
+
+Then call any of the usual methods:
+
+```rust
+ytdlp.download_audio(
+    "https://www.youtube.com/watch?v=CEsTRpeOGkg",
+    "/var/tmp/bunge-bits/audio/%(title)s.%(ext)s"
+)?;
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
