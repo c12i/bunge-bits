@@ -23,8 +23,14 @@ RUN cargo build --release --bin stream-pulse-cron
 
 # runtime image
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+  ca-certificates \
+  ffmpeg \
+  python3 \
+  && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/release/stream-pulse-cron /usr/local/bin/stream-pulse-cron
+# copy vendored yt-dlp binary from build output
+COPY --from=builder /app/target/release/build/ytdlp_bindings-*/out/yt-dlp /usr/local/bin/yt-dlp
 WORKDIR /app
 ENV OPENAI_API_KEY= \
   DATABASE_URL= \

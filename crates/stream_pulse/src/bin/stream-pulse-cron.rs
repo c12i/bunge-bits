@@ -13,7 +13,7 @@ const CRON_EXPR: &str = "0 0 */4 * * *";
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
-    dotenvy::dotenv()?;
+    let _ = dotenvy::dotenv();
 
     let _guard = sentry::init((
         std::env::var("SENTRY_DSN").unwrap_or_else(|_| String::new()),
