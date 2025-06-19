@@ -302,7 +302,7 @@ Based on the transcript chunk, please summarize it based on the instructions you
                             "${{DATE}}",
                             &stream
                                 .timestamp_from_time_ago()
-                                .and_then(|v| Some(v.to_string()))
+                                .map(|v| v.to_string())
                                 .unwrap_or_else(|| "${{DATE: inferred from summary}}".to_string()),
                         ),
                 ),
@@ -390,7 +390,7 @@ Summaries:
                             "${{DATE}}",
                             &stream
                                 .timestamp_from_time_ago()
-                                .and_then(|v| Some(v.to_string()))
+                                .map(|v| v.to_string())
                                 .unwrap_or_else(|| "${{DATE: inferred from summary}}".to_string()),
                         ),
                 ),
