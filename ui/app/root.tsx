@@ -1,15 +1,10 @@
 import "./tailwind.css";
 
 import type { LinksFunction, MetaFunction } from "@remix-run/node";
-import {
-  Links,
-  Meta,
-  Outlet,
-  Scripts,
-  ScrollRestoration,
-} from "@remix-run/react";
-import Header from "./components/header";
+import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "@remix-run/react";
+
 import Footer from "./components/footer";
+import Header from "./components/header";
 
 export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },

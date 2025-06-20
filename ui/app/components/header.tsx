@@ -12,9 +12,7 @@ const Header = () => {
               className="w-10 h-10 object-contain"
             />
             <div className="flex items-center space-x-2">
-              <span className="text-xl font-bold text-gray-900">
-                Bunge Bits
-              </span>
+              <span className="text-xl font-bold text-gray-900">Bunge Bits</span>
               <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">
                 Beta
               </span>

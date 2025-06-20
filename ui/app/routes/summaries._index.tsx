@@ -1,11 +1,6 @@
 import { PrismaClient } from "@prisma-app/client";
-import { LoaderFunctionArgs, json } from "@remix-run/node";
-import {
-  Link,
-  useLoaderData,
-  useSearchParams,
-  useSubmit,
-} from "@remix-run/react";
+import { LoaderFunctionArgs } from "@remix-run/node";
+import { Link, useLoaderData, useSearchParams, useSubmit } from "@remix-run/react";
 import { Calendar, Play, Search, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -132,9 +127,8 @@ export default function Index() {
             Bunge Bits
           </h1>
           <p className="text-xl text-gray-600 mb-6 max-w-3xl mx-auto">
-            Convenient summaries of Kenyan National Assembly and Senate
-            proceedings, making legislative information more accessible and
-            digestible. Powered by AI.
+            Convenient summaries of Kenyan National Assembly and Senate proceedings,
+            making legislative information more accessible and digestible. Powered by AI.
           </p>
 
           {/* Search Bar */}
@@ -187,10 +181,10 @@ export default function Index() {
                       stream.house === "senate"
                         ? "bg-accent text-accent-foreground"
                         : stream.house === "national assembly"
-                        ? "bg-primary text-primary-foreground"
-                        : stream.house === "all"
-                        ? "bg-secondary text-secondary-foreground"
-                        : "bg-muted text-muted-foreground"
+                          ? "bg-primary text-primary-foreground"
+                          : stream.house === "all"
+                            ? "bg-secondary text-secondary-foreground"
+                            : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {stream.house}
@@ -275,9 +269,7 @@ export default function Index() {
         {/* Empty States */}
         {streams.length === 0 && query && (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">
-              No summaries found for "{query}".
-            </p>
+            <p className="text-gray-500 text-lg">No summaries found for "{query}".</p>
             <button
               onClick={handleClearSearch}
               className="text-red-800 hover:underline mt-2 inline-block cursor-pointer"
@@ -289,9 +281,7 @@ export default function Index() {
 
         {streams.length === 0 && !query && (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">
-              No summaries found for this page.
-            </p>
+            <p className="text-gray-500 text-lg">No summaries found for this page.</p>
           </div>
         )}
       </main>

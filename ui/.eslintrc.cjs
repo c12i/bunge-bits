@@ -16,7 +16,7 @@ module.exports = {
   ignorePatterns: ["!**/.server", "!**/.client"],
 
   // Base config
-  extends: ["eslint:recommended"],
+  extends: ["eslint:recommended", "plugin:prettier/recommended"],
 
   overrides: [
     // React
@@ -28,6 +28,7 @@ module.exports = {
         "plugin:react/jsx-runtime",
         "plugin:react-hooks/recommended",
         "plugin:jsx-a11y/recommended",
+        "plugin:prettier/recommended",
       ],
       settings: {
         react: {
@@ -73,6 +74,7 @@ module.exports = {
         "import/newline-after-import": "error",
         "import/no-duplicates": "error",
         "@typescript-eslint/no-explicit-any": "warn",
+        "react/no-unescaped-entities": "off",
       },
     },
 

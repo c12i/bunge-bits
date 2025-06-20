@@ -1,3 +1,4 @@
+import { PrismaClient } from "@prisma-app/client";
 import { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import { ArrowLeft, Calendar, Clock, Users } from "lucide-react";
@@ -8,7 +9,6 @@ import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { formatDate, formatDuration } from "~/lib/utils";
 
-import { PrismaClient } from "@prisma-app/client";
 const prisma = new PrismaClient();
 
 export async function loader({ params }: LoaderFunctionArgs) {
