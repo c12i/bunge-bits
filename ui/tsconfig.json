@@ -34,24 +34,7 @@
         "./app/*"
       ]
     },
-    "compilerOptions": {
-      "baseUrl": ".",
-      "paths": {
-        "@/*": [
-          "app/*"
-        ],
-        "@/components/*": [
-          "app/components/*"
-        ],
-        "@/lib/*": [
-          "app/lib/*"
-        ],
-        "@/hooks/*": [
-          "app/hooks/*"
-        ]
-      }
-    },
-    // Vite takes care of building everything, not tsc.
-    "noEmit": true
-  }
+  },
+  // Vite takes care of building everything, not tsc.
+  "noEmit": true
 }
