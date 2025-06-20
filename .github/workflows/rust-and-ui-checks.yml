@@ -55,12 +55,12 @@ jobs:
         run: pnpm install
         working-directory: ./ui
 
-      - name: Typecheck
-        run: pnpm typecheck
-        working-directory: ./ui
-
       - name: Lint
         run: pnpm lint
+        working-directory: ./ui
+
+      - name: Typecheck
+        run: pnpm typecheck
         working-directory: ./ui
 
       - name: Build
