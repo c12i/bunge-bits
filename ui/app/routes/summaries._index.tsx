@@ -126,7 +126,7 @@ export default function Index() {
           <p className="text-xl text-gray-600 mb-6 max-w-3xl mx-auto">
             Convenient summaries of Kenyan National Assembly and Senate
             proceedings, making legislative information more accessible and
-            digestible.
+            digestible. Powered by AI.
           </p>
 
           {/* Search Bar */}
