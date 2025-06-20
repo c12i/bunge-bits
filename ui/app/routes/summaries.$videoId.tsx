@@ -1,21 +1,12 @@
 import { json, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
-import {
-  ArrowLeft,
-  Calendar,
-  Clock,
-  ExternalLink,
-  Play,
-  Users,
-} from "lucide-react";
-import snarkdown from "snarkdown";
+import { ArrowLeft, Calendar, Clock, Users } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 import Header from "~/components/header";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Separator } from "~/components/ui/separator";
 import { formatDate, formatDuration } from "~/lib/utils";
 
 import { PrismaClient } from "@prisma-app/client";
@@ -107,37 +98,24 @@ export default function StreamSummary() {
             </CardTitle>
           </CardHeader>
 
+          <div className="p-4">
+            <div className="rounded-md overflow-hidden aspect-video w-full">
+              <iframe
+                src={`https://www.youtube.com/embed/${stream.video_id}`}
+                className="w-full h-full"
+                title="YouTube video player"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                loading="lazy"
+              />
+            </div>
+          </div>
+
           <CardContent className="space-y-8">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Summary
-              </h2>
               <div className="markdown">
                 <ReactMarkdown>{cleanedMarkdown}</ReactMarkdown>
               </div>
-            </div>
-
-            <Separator />
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button
-                asChild
-                className="bg-green-600 hover:bg-green-700 text-white flex-1"
-              >
-                <a
-                  href={`https://youtube.com/watch?v=${stream.video_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Watch Full Session
-                  <ExternalLink className="w-4 h-4 ml-2" />
-                </a>
-              </Button>
-
-              <Button variant="outline" asChild className="flex-1">
-                <Link to="/summaries">View More Summaries</Link>
-              </Button>
             </div>
           </CardContent>
         </Card>
