@@ -77,7 +77,7 @@ export default function StreamSummary() {
           <CardHeader className="pb-6">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
               <Badge variant="default" className="w-fit">
-                Parliament
+                {stream.house}
               </Badge>
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                 <div className="flex items-center">
