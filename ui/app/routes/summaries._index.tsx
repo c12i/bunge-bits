@@ -33,6 +33,16 @@ export default function Index() {
     });
   };
 
+  const PAGE_SIZE = 6;
+  const [page, setPage] = useState(1);
+
+  const paginatedStreams = filteredStreams.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
+
+  const pageCount = Math.ceil(filteredStreams.length / PAGE_SIZE);
+
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -66,7 +76,7 @@ export default function Index() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredStreams.map((stream) => (
+          {paginatedStreams.map((stream) => (
             <Card
               key={stream.videoId}
               className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white/80 backdrop-blur-sm border-0 shadow-md"
@@ -127,6 +137,35 @@ export default function Index() {
             </Card>
           ))}
         </div>
+
+        {pageCount > 1 && (
+          <div className="flex justify-center mt-8 gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setPage((p) => Math.max(p - 1, 1))}
+              disabled={page === 1}
+            >
+              Prev
+            </Button>
+            {Array.from({ length: pageCount }).map((_, i) => (
+              <Button
+                key={i}
+                variant={page === i + 1 ? "default" : "outline"}
+                onClick={() => setPage(i + 1)}
+                className="w-10 px-0"
+              >
+                {i + 1}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              onClick={() => setPage((p) => Math.min(p + 1, pageCount))}
+              disabled={page === pageCount}
+            >
+              Next
+            </Button>
+          </div>
+        )}
 
         {filteredStreams.length === 0 && (
           <div className="text-center py-12">
