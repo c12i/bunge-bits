@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@prisma-app/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model search_queries {
+  id         Int      @id @default(autoincrement())
+  query      String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([created_at], map: "idx_search_queries_created_at")
+}
+
+model streams {
+  video_id         String                   @id
+  title            String
+  view_count       String
+  stream_timestamp DateTime                 @db.Timestamptz(6)
+  duration         String
+  summary_md       String?
+  timestamp_md     String?
+  is_published     Boolean                  @default(false)
+  search_vector    Unsupported("tsvector")?
+  house            String?                  @default(dbgenerated("\nCASE\n    WHEN ((title ~~* '%national assembly%'::text) AND (title ~~* '%senate%'::text)) THEN 'all'::text\n    WHEN (title ~~* '%national assembly%'::text) THEN 'national assembly'::text\n    WHEN (title ~~* '%senate%'::text) THEN 'senate'::text\n    ELSE 'unspecified'::text\nEND"))
+
+  @@index([search_vector], type: Gin)
+}
