@@ -7,9 +7,8 @@ import {
   useSubmit,
 } from "@remix-run/react";
 import { Calendar, Play, Search, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import Header from "~/components/header";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -42,6 +41,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
             view_count, 
             stream_timestamp, 
             duration, 
+            house,
             summary_md
           FROM streams 
           WHERE search_vector @@ plainto_tsquery('english', $1)
@@ -173,8 +173,19 @@ export default function Index() {
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <Badge variant="default" className="text-xs">
-                    Parliament
+                  <Badge
+                    variant="default"
+                    className={`text-xs ${
+                      stream.house === "senate"
+                        ? "bg-accent text-accent-foreground"
+                        : stream.house === "national assembly"
+                        ? "bg-primary text-primary-foreground"
+                        : stream.house === "all"
+                        ? "bg-secondary text-secondary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {stream.house}
                   </Badge>
                   <div className="flex items-center text-xs text-gray-500">
                     <Calendar className="w-3 h-3 mr-1" />
@@ -286,6 +297,7 @@ function useSearch() {
   const searchTerm = searchParams.get("q") || "";
   const [inputValue, setInputValue] = useState(searchTerm);
   const debouncedSearchTerm = useDebounce(inputValue, 300);
+  const hasMountedRef = useRef(false);
 
   useEffect(() => {
     const newSearchParams = new URLSearchParams();
@@ -295,15 +307,18 @@ function useSearch() {
     }
     newSearchParams.set("page", "1");
 
-    // Only submit if the debounced value is different from current URL param
+    // only submit if the debounced value is different from current URL param
     if (debouncedSearchTerm.trim() !== searchTerm) {
       submit(newSearchParams, { method: "get" });
     }
   }, [debouncedSearchTerm, submit, searchTerm]);
 
-  // Update input value when URL changes (e.g., from navigation)
+  // update input value when URL changes (e.g., from navigation)
   useEffect(() => {
-    setInputValue(searchTerm);
+    if (!hasMountedRef.current) {
+      setInputValue(searchTerm);
+      hasMountedRef.current = true;
+    }
   }, [searchTerm]);
 
   const handleInputChange = (value: string) => {

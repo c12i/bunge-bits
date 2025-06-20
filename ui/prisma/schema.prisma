@@ -26,6 +26,7 @@ model streams {
   timestamp_md     String?
   is_published     Boolean                  @default(false)
   search_vector    Unsupported("tsvector")?
+  house            String?                  @default(dbgenerated("\nCASE\n    WHEN ((title ~~* '%national assembly%'::text) AND (title ~~* '%senate%'::text)) THEN 'all'::text\n    WHEN (title ~~* '%national assembly%'::text) THEN 'national assembly'::text\n    WHEN (title ~~* '%senate%'::text) THEN 'senate'::text\n    ELSE 'unspecified'::text\nEND"))
 
   @@index([search_vector], type: Gin)
 }
