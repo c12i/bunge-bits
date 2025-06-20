@@ -4,6 +4,8 @@
 
 # Bunge Bits
 
+[![Rust and Ui Checks](https://github.com/c12i/bunge-bits/actions/workflows/rust-and-ui-checks.yml/badge.svg)](https://github.com/c12i/bunge-bits/actions/workflows/rust-and-ui-checks.yml)
+
 Bunge Bits provides convenient summaries of Kenyan National Assembly and Senate proceedings, making legislative information more accessible and digestible.
 
 ## Motivations
