@@ -28,6 +28,7 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
 ## Development Setup
 
 - [`stream_pulse`](./crates/stream_pulse/README.md#development-setup)
+- [`ui`](./ui/README.md)
 
 ## Contribution
 
