@@ -8,16 +8,29 @@ import {
   Play,
   Users,
 } from "lucide-react";
+import snarkdown from "snarkdown";
+import ReactMarkdown from "react-markdown";
 
 import Header from "~/components/header";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
-import { mockStreams } from "~/data/mock-data";
+import { formatDate, formatDuration } from "~/lib/utils";
+
+import { PrismaClient } from "@prisma-app/client";
+const prisma = new PrismaClient();
 
 export async function loader({ params }: LoaderFunctionArgs) {
-  const stream = mockStreams.find((s) => s.videoId === params.videoId);
+  const { videoId } = params;
+
+  if (!videoId) {
+    throw new Response("Missing video ID", { status: 400 });
+  }
+
+  const stream = await prisma.streams.findUnique({
+    where: { video_id: videoId },
+  });
 
   if (!stream) {
     throw new Response("Not Found", { status: 404 });
@@ -26,30 +39,32 @@ export async function loader({ params }: LoaderFunctionArgs) {
   return json({ stream });
 }
 
-export const meta: MetaFunction = ({}) => {
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  if (!data) {
+    return [
+      { title: "Summary – Parliamentary Session" },
+      {
+        name: "description",
+        content: "Session summary for a legislative stream.",
+      },
+    ];
+  }
+
   return [
-    { title: `Summary – Parliamentary Session` },
-    { name: "description", content: "Session summary for videoId..." },
+    { title: `Summary – ${data.stream.title}` },
+    {
+      name: "description",
+      content:
+        data.stream.summary_md?.slice(0, 150).replace(/\n/g, " ") ||
+        "Session summary for a legislative stream.",
+    },
   ];
 };
 
 export default function StreamSummary() {
   const { stream } = useLoaderData<typeof loader>();
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString("en-GB", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      weekday: "long",
-    });
-  };
-
-  const formatDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
-  };
+  const rawMarkdown = stream.summary_md || "";
+  const cleanedMarkdown = rawMarkdown.replace(/\\n/g, "\n"); // key line
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
@@ -68,20 +83,13 @@ export default function StreamSummary() {
         <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader className="pb-6">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-              <Badge
-                variant={
-                  stream.chamber === "National Assembly"
-                    ? "default"
-                    : "secondary"
-                }
-                className="w-fit"
-              >
-                {stream.chamber}
+              <Badge variant="default" className="w-fit">
+                Parliament
               </Badge>
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                 <div className="flex items-center">
                   <Calendar className="w-4 h-4 mr-2" />
-                  {formatDate(stream.date)}
+                  {formatDate(stream.stream_timestamp)}
                 </div>
                 <div className="flex items-center">
                   <Clock className="w-4 h-4 mr-2" />
@@ -89,7 +97,7 @@ export default function StreamSummary() {
                 </div>
                 <div className="flex items-center">
                   <Users className="w-4 h-4 mr-2" />
-                  {stream.viewCount.toLocaleString()} views
+                  {parseInt(stream.view_count).toLocaleString()} views
                 </div>
               </div>
             </div>
@@ -97,75 +105,16 @@ export default function StreamSummary() {
             <CardTitle className="text-2xl md:text-3xl leading-tight text-gray-900 mb-4">
               {stream.title}
             </CardTitle>
-
-            <div className="flex flex-wrap gap-2">
-              {stream.keyTopics?.map((topic: string, index: number) => (
-                <Badge key={index} variant="outline" className="text-sm">
-                  {topic}
-                </Badge>
-              ))}
-            </div>
           </CardHeader>
 
           <CardContent className="space-y-8">
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Executive Summary
+                Summary
               </h2>
-              <p className="text-gray-700 leading-relaxed text-lg">
-                {stream.summary}
-              </p>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Detailed Summary
-              </h2>
-              <div className="prose prose-gray max-w-none">
-                <p className="text-gray-700 leading-relaxed mb-4">
-                  {stream.detailedSummary}
-                </p>
+              <div className="markdown">
+                <ReactMarkdown>{cleanedMarkdown}</ReactMarkdown>
               </div>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Key Moments
-              </h2>
-              <div className="bg-gray-50 rounded-lg p-6">
-                <div className="space-y-4">
-                  {stream.moments?.map((moment: any, index: number) => (
-                    <div key={index} className="flex items-start gap-4">
-                      <div className="bg-red-800 text-white px-3 py-1 rounded-md text-sm font-mono min-w-fit">
-                        {moment.timestamp}
-                      </div>
-                      <p className="text-gray-700 leading-relaxed flex-1">
-                        {moment.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Key Points Discussed
-              </h2>
-              <ul className="space-y-3">
-                {stream.keyPoints?.map((point: string, index: number) => (
-                  <li key={index} className="flex items-start">
-                    <div className="w-2 h-2 bg-green-600 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                    <p className="text-gray-700 leading-relaxed">{point}</p>
-                  </li>
-                ))}
-              </ul>
             </div>
 
             <Separator />
@@ -176,7 +125,7 @@ export default function StreamSummary() {
                 className="bg-green-600 hover:bg-green-700 text-white flex-1"
               >
                 <a
-                  href={`https://youtube.com/watch?v=${stream.videoId}`}
+                  href={`https://youtube.com/watch?v=${stream.video_id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >

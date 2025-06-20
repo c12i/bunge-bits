@@ -2,6 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .markdown h1 {
+    @apply text-3xl font-bold mt-6 mb-4 text-gray-900;
+  }
+
+  .markdown h2 {
+    @apply text-2xl font-semibold mt-6 mb-3 text-gray-800;
+  }
+
+  .markdown h3 {
+    @apply text-xl font-medium mt-5 mb-2 text-gray-700;
+  }
+
+  .markdown p {
+    @apply text-base leading-relaxed text-gray-700 mb-4;
+  }
+
+  .markdown ul {
+    @apply list-disc list-outside mb-4 ml-3;
+  }
+
+  .markdown li {
+    @apply mb-1;
+  }
+
+  .markdown strong {
+    @apply font-semibold text-gray-900;
+  }
+
+  .markdown em {
+    @apply italic text-gray-600;
+  }
+
+  .markdown hr {
+    @apply border-gray-300 my-6;
+  }
+
+  .markdown a {
+    @apply text-blue-600 underline hover:text-blue-800;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
