@@ -1,9 +1,8 @@
-import { json, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
+import { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import { ArrowLeft, Calendar, Clock, Users } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-import Header from "~/components/header";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -19,15 +18,20 @@ export async function loader({ params }: LoaderFunctionArgs) {
     throw new Response("Missing video ID", { status: 400 });
   }
 
-  const stream = await prisma.streams.findUnique({
-    where: { video_id: videoId },
-  });
+  try {
+    const stream = await prisma.streams.findUnique({
+      where: { video_id: videoId },
+    });
 
-  if (!stream) {
-    throw new Response("Not Found", { status: 404 });
+    if (!stream) {
+      throw new Response("Not Found", { status: 404 });
+    }
+
+    return Response.json({ stream });
+  } catch (err) {
+    console.error("DB fetch failed:", err);
+    throw new Response("Internal Server Error", { status: 500 });
   }
-
-  return json({ stream });
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {

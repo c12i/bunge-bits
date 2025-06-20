@@ -28,7 +28,7 @@ const PAGE_SIZE = 9;
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim();
-  const page = parseInt(url.searchParams.get("page") || "1");
+  const page = Math.max(parseInt(url.searchParams.get("page") || "1", 10), 1);
 
   if (query) {
     try {
@@ -48,53 +48,35 @@ export async function loader({ request }: LoaderFunctionArgs) {
           ORDER BY stream_timestamp DESC
           OFFSET $2
           LIMIT $3;
-        `,
+          `,
           query,
           (page - 1) * PAGE_SIZE,
           PAGE_SIZE
         ),
-
         prisma.$queryRawUnsafe<{ count: number }[]>(
           `
           SELECT COUNT(*)::int AS count
           FROM streams 
           WHERE search_vector @@ plainto_tsquery('english', $1)
-        `,
+          `,
           query
         ),
       ]);
 
-      return json({ streams, total: countResult[0].count, page, query });
+      return Response.json({
+        streams,
+        total: countResult[0].count,
+        page,
+        query,
+      });
     } catch (error) {
       console.error("Search error:", error);
-      // Fallback to basic search if fts fails
-      const [streams, countResult] = await Promise.all([
-        prisma.streams.findMany({
-          where: {
-            OR: [
-              { title: { contains: query, mode: "insensitive" } },
-              { summary_md: { contains: query, mode: "insensitive" } },
-            ],
-          },
-          orderBy: { stream_timestamp: "desc" },
-          skip: (page - 1) * PAGE_SIZE,
-          take: PAGE_SIZE,
-        }),
-        prisma.streams.count({
-          where: {
-            OR: [
-              { title: { contains: query, mode: "insensitive" } },
-              { summary_md: { contains: query, mode: "insensitive" } },
-            ],
-          },
-        }),
-      ]);
-
-      return json({ streams, total: countResult, page, query });
+      const { streams, total } = await fallbackSearch(query, page);
+      return Response.json({ streams, total, page, query });
     }
   }
 
-  // fallback: no query, return all streams paginated
+  // Fallback for no query
   const [streams, total] = await Promise.all([
     prisma.streams.findMany({
       orderBy: { stream_timestamp: "desc" },
@@ -104,7 +86,33 @@ export async function loader({ request }: LoaderFunctionArgs) {
     prisma.streams.count(),
   ]);
 
-  return json({ streams, total, page, query: null });
+  return Response.json({ streams, total, page, query: null });
+}
+
+async function fallbackSearch(query: string, page: number) {
+  const [streams, count] = await Promise.all([
+    prisma.streams.findMany({
+      where: {
+        OR: [
+          { title: { contains: query, mode: "insensitive" } },
+          { summary_md: { contains: query, mode: "insensitive" } },
+        ],
+      },
+      orderBy: { stream_timestamp: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.streams.count({
+      where: {
+        OR: [
+          { title: { contains: query, mode: "insensitive" } },
+          { summary_md: { contains: query, mode: "insensitive" } },
+        ],
+      },
+    }),
+  ]);
+
+  return { streams, total: count };
 }
 
 export default function Index() {
@@ -166,7 +174,7 @@ export default function Index() {
 
         {/* Streams Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {streams.map((stream) => (
+          {streams.map((stream: any) => (
             <Card
               key={stream.video_id}
               className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white/80 backdrop-blur-sm border-0 shadow-md"
