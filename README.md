@@ -24,7 +24,7 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
 - [x] `stream_digest`: Functions that make it possible to efficiently process transcripts in chunks
 - [x] LLMs: A service that interacts with OpenAI's Whisper and ChatGPT 4o to handle transcribing and summarizing the downloaded audio
 - [x] Manual publish flag – `is_published` field added to each stream for editorial control. Yes it sucks, but it's necessary for now since LLMs don't seem to get everything 100% right. Only a temporary step for now though.
-- [ ] Web App: The end user interface that will display the summarized content [#3](https://github.com/c12i/bunge-bits/issues/3)
+- [x] Web App: The end user interface that will display the summarized content [#3](https://github.com/c12i/bunge-bits/issues/3)
 - [ ] Email Newsletter – Periodic delivery of new summaries to subscribers
 
 ## Development Setup
