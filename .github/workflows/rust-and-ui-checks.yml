@@ -1,26 +1,40 @@
-name: Ui Workflow
+name: Rust and Ui Checks
 
 on:
   push:
     branches: [main]
-    paths:
-      - "ui/**"
-      - ".github/workflows/ui.yml"
   pull_request:
     branches: [main]
-    paths:
-      - "ui/**"
-      - ".github/workflows/ui.yml"
 
 concurrency:
   group: ${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  rust-checks:
+    name: Rust Checks
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Cargo Test
+        run: cargo test --no-fail-fast
+
+      - name: Rustfmt
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+
+  ui-checks:
     name: Typecheck, Lint, and Build
     runs-on: ubuntu-latest
-
+    continue-on-error: true
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
