@@ -59,8 +59,6 @@ export default function StreamSummary() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-      <Header />
-
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6">
           <Link to="/summaries">
