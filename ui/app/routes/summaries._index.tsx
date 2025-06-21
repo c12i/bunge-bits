@@ -204,7 +204,7 @@ export default function Index() {
                   </div>
                   <div className="flex items-center">
                     <Users className="w-3 h-3 mr-1" />
-                    {parseInt(stream.view_count).toLocaleString()} views
+                    {stream.view_count}
                   </div>
                 </div>
               </CardHeader>

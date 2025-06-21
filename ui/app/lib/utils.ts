@@ -1,4 +1,5 @@
 import { type ClassValue, clsx } from "clsx";
+import { format } from "date-fns";
 import { twMerge } from "tailwind-merge";
 
 export const cn = (...inputs: ClassValue[]) => {
@@ -6,16 +7,22 @@ export const cn = (...inputs: ClassValue[]) => {
 };
 
 export const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("en-GB", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  return format(new Date(dateString), "d MMMM yyyy");
 };
 
 export const formatDuration = (duration: string) => {
-  const seconds = parseInt(duration, 10);
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  return `${hours}h ${minutes}m`;
+  const parts = duration.split(":").map(Number);
+
+  let hours = 0;
+  let minutes = 0;
+
+  if (parts.length === 3) {
+    [hours, minutes] = parts;
+  } else if (parts.length === 2) {
+    [minutes] = parts;
+  } else {
+    return duration; // fallback for unexpected format
+  }
+
+  return `${hours ? `${hours}h ` : ""}${minutes}m`;
 };

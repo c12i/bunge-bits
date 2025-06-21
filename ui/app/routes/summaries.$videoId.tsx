@@ -90,7 +90,7 @@ export default function StreamSummary() {
                 </div>
                 <div className="flex items-center">
                   <Users className="w-4 h-4 mr-2" />
-                  {parseInt(stream.view_count).toLocaleString()} views
+                  {stream.view_count}
                 </div>
               </div>
             </div>
