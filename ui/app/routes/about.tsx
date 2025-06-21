@@ -13,7 +13,7 @@ export default function AboutPage() {
       <p>
         <strong>Bunge Bits</strong> is a civic-tech project that uses AI to generate
         human-readable summaries of Kenya’s National Assembly and Senate proceedings. The
-        goal is to make parliamentary activity more accessible to all Kenyans—especially
+        goal is to make parliamentary activity more accessible to all Kenyans, especially
         those who don’t have the time or capacity to sit through multi-hour livestreams.
       </p>
 
