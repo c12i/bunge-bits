@@ -52,21 +52,6 @@ export default function AboutPage() {
         tech, I’d love to collaborate and take this further.
       </p>
 
-      <h2 className="text-xl font-semibold">Bug Reports and Feature Requests</h2>
-      <p>
-        Found a bug or have an idea to improve the platform? Feel free to open an issue or
-        feature request on the project’s GitHub repository:{" "}
-        <a
-          href="https://github.com/c12i/bunge-bits/issues"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline hover:text-primary"
-        >
-          github.com/c12i/bunge-bits/issues
-        </a>
-        .
-      </p>
-
       <h2 className="text-xl font-semibold mt-6">Support the Project</h2>
       <p>
         Running this platform incurs real costs. API usage for Whisper and GPT-4o, cloud
