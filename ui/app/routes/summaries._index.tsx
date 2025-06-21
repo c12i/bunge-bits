@@ -3,6 +3,7 @@ import { LoaderFunctionArgs } from "@remix-run/node";
 import { Link, useLoaderData, useSearchParams, useSubmit } from "@remix-run/react";
 import { Calendar, Play, Search, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import removeMarkdown from "remove-markdown";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -217,7 +218,9 @@ export default function Index() {
               </CardHeader>
               <CardContent className="pt-0">
                 <CardDescription className="line-clamp-3 mb-4 text-sm leading-relaxed">
-                  {stream.summary_md || "No summary available."}
+                  {removeMarkdown(stream.summary_md)
+                    .replace(/\\n/g, " ")
+                    .replace(/\s+/g, " ") || "No summary available."}
                 </CardDescription>
                 <Link to={`/summaries/${stream.video_id}`}>
                   <Button className="w-full bg-red-800 hover:bg-red-900 text-white">
