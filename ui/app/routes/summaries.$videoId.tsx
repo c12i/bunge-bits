@@ -1,4 +1,3 @@
-/* eslint-disable import/no-unresolved */
 import { PrismaClient } from "@prisma-app/client";
 import { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
