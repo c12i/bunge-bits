@@ -25,6 +25,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const query = url.searchParams.get("q")?.trim();
   const page = Math.max(parseInt(url.searchParams.get("page") || "1", 10), 1);
 
+  const CACHE_HEADERS = {
+    "Cache-Control": "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400",
+  };
+
   if (query) {
     try {
       const [streams, countResult] = await Promise.all([
@@ -39,7 +43,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
             house,
             summary_md
           FROM streams 
-          WHERE search_vector @@ plainto_tsquery('english', $1)
+          WHERE is_published = true
+            AND search_vector @@ plainto_tsquery('english', $1)
           ORDER BY stream_timestamp DESC
           OFFSET $2
           LIMIT $3;
@@ -52,60 +57,38 @@ export async function loader({ request }: LoaderFunctionArgs) {
           `
           SELECT COUNT(*)::int AS count
           FROM streams 
-          WHERE search_vector @@ plainto_tsquery('english', $1)
+          WHERE is_published = true
+            AND search_vector @@ plainto_tsquery('english', $1)
           `,
           query
         ),
       ]);
 
       return Response.json(
-        {
-          streams,
-          total: countResult[0].count,
-          page,
-          query,
-        },
-        {
-          headers: {
-            "Cache-Control":
-              "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400",
-          },
-        }
+        { streams, total: countResult[0].count, page, query },
+        { headers: CACHE_HEADERS }
       );
     } catch (error) {
       console.error("Search error:", error);
       const { streams, total } = await fallbackSearch(query, page);
-      return Response.json(
-        { streams, total, page, query },
-        {
-          headers: {
-            "Cache-Control":
-              "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400",
-          },
-        }
-      );
+      return Response.json({ streams, total, page, query }, { headers: CACHE_HEADERS });
     }
   }
 
   // Fallback for no query
   const [streams, total] = await Promise.all([
     prisma.streams.findMany({
+      where: { is_published: true },
       orderBy: { stream_timestamp: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
-    prisma.streams.count(),
+    prisma.streams.count({
+      where: { is_published: true },
+    }),
   ]);
 
-  return Response.json(
-    { streams, total, page, query },
-    {
-      headers: {
-        "Cache-Control":
-          "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400",
-      },
-    }
-  );
+  return Response.json({ streams, total, page, query: null }, { headers: CACHE_HEADERS });
 }
 
 async function fallbackSearch(query: string, page: number) {
