@@ -12,9 +12,6 @@ Built with [Remix](https://remix.run), [Tailwind CSS](https://tailwindcss.com), 
 - **TypeScript**
 - **Tailwind CSS**
 - **ShadCN UI**
-- **React Hook Form** + **Zod**
-- **Lucide** clean icons
-- **TanStack Query** – async data manageme
 
 ## Local Development Setup
 
