@@ -1,3 +1,4 @@
+/* eslint-disable import/no-unresolved */
 import { PrismaClient } from "@prisma-app/client";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { Link, useLoaderData, useSearchParams, useSubmit } from "@remix-run/react";
