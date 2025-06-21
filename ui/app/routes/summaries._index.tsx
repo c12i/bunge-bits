@@ -58,16 +58,32 @@ export async function loader({ request }: LoaderFunctionArgs) {
         ),
       ]);
 
-      return Response.json({
-        streams,
-        total: countResult[0].count,
-        page,
-        query,
-      });
+      return Response.json(
+        {
+          streams,
+          total: countResult[0].count,
+          page,
+          query,
+        },
+        {
+          headers: {
+            "Cache-Control":
+              "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400",
+          },
+        }
+      );
     } catch (error) {
       console.error("Search error:", error);
       const { streams, total } = await fallbackSearch(query, page);
-      return Response.json({ streams, total, page, query });
+      return Response.json(
+        { streams, total, page, query },
+        {
+          headers: {
+            "Cache-Control":
+              "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400",
+          },
+        }
+      );
     }
   }
 
@@ -81,7 +97,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
     prisma.streams.count(),
   ]);
 
-  return Response.json({ streams, total, page, query: null });
+  return Response.json(
+    { streams, total, page, query },
+    {
+      headers: {
+        "Cache-Control":
+          "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400",
+      },
+    }
+  );
 }
 
 async function fallbackSearch(query: string, page: number) {

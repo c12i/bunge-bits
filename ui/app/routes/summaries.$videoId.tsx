@@ -27,7 +27,15 @@ export async function loader({ params }: LoaderFunctionArgs) {
       throw new Response("Not Found", { status: 404 });
     }
 
-    return Response.json({ stream });
+    return Response.json(
+      { stream },
+      {
+        headers: {
+          "Cache-Control":
+            "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400",
+        },
+      }
+    );
   } catch (err) {
     console.error("DB fetch failed:", err);
     throw new Response("Internal Server Error", { status: 500 });
