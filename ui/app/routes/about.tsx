@@ -64,18 +64,26 @@ export default function AboutPage() {
           className="underline hover:text-primary"
         >
           buymeacoffee.com/c12i
+        </a>{" "}
+        or{" "}
+        <a
+          href="https://github.com/sponsors/c12i"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-primary"
+        >
+          github.com/sponsors/c12i
         </a>
-        .
       </p>
 
       <p className="text-sm text-muted-foreground mt-4">
         <a
-          href="https://github.com/c12i/bunge-bits"
+          href="https://c12i.xyz"
           target="_blank"
           rel="noopener noreferrer"
           className="underline"
         >
-          GitHub
+          Collins Muriuki
         </a>{" "}
         | Contact: <code>hello[at]c12i.xyz</code>
       </p>
