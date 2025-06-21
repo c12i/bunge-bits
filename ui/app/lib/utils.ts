@@ -26,3 +26,51 @@ export const formatDuration = (duration: string) => {
 
   return `${hours ? `${hours}h ` : ""}${minutes}m`;
 };
+
+type FeedItem = {
+  title: string;
+  slug: string;
+  date?: Date;
+};
+
+type FeedMeta = {
+  title: string;
+  description: string;
+  baseUrl: string;
+  items: FeedItem[];
+};
+
+export const toRssFeed = ({ title, description, baseUrl, items }: FeedMeta) => {
+  const postItems = items
+    .map(({ title, slug, date }) => {
+      const link = `${baseUrl}${slug}`;
+      const pubDate = date ? `<pubDate>${new Date(date).toUTCString()}</pubDate>` : "";
+      return `
+      <item>
+        <title>${escapeXml(title)}</title>
+        <link>${link}</link>
+        ${pubDate}
+        <guid>${link}</guid>
+      </item>
+    `;
+    })
+    .join("");
+
+  return `<?xml version="1.0" encoding="UTF-8" ?>
+  <rss version="2.0">
+    <channel>
+      <title>${escapeXml(title)}</title>
+      <description>${escapeXml(description)}</description>
+      <link>${baseUrl}/summaries/rss.xml</link>
+      ${postItems}
+    </channel>
+  </rss>`;
+};
+
+function escapeXml(str: string): string {
+  return str.replace(
+    /[<>&'"]/g,
+    (c) =>
+      ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" })[c] || c
+  );
+}
