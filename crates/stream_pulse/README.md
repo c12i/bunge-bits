@@ -9,7 +9,7 @@ To run the `stream_pulse_cron` binary, set the following environment variables:
 ```bash
 OPENAI_API_KEY="<your_openai_api_key>"
 DATABASE_URL="<your_postgres_database_url>"
-YTDLP_COOKIES_PATH="<path to your cookies.txt file>" # required in order to authenticate to yt, especially in a cloud env, this is required
+YTDLP_COOKIES_PATH="<path to your cookies.txt file>" # required in order to authenticate to yt, especially in a cloud env
 SENTRY_DSN="<optional_sentry_dsn>" # can be omitted for local development
 MAX_STREAMS_TO_PROCESS=3 # optional config of the maxim number of streams that can be processed in a given run
 ```

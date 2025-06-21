@@ -1,8 +1,8 @@
 # Bunge Bits
 
-Frontend for the **Bunge Bits** project. This app renders audiovisual representations of Kenyan parliamentary and senate speeches using emotion-driven visuals and sound.
+Frontend for the **Bunge Bits** project.
 
-Built with [Remix](https://remix.run), [Tailwind CSS](https://tailwindcss.com), [ShadCN UI](https://ui.shadcn.com), and [React Router].
+Built with [Remix](https://remix.run), [Tailwind CSS](https://tailwindcss.com) and [ShadCN UI](https://ui.shadcn.com).
 
 ---
 
