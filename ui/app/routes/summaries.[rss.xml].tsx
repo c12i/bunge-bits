@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma-app/client";
+
 import { toRssFeed } from "~/lib/utils";
 
 const prisma = new PrismaClient();
