@@ -73,7 +73,7 @@ impl DataStore {
                     };
                     Either::Right(FailedInsert {
                         video_id: stream.video_id.clone(),
-                        reason: reason,
+                        reason,
                     })
                 }
             });
@@ -93,7 +93,7 @@ impl DataStore {
                     stream.video_id.clone(),
                     stream.title.clone(),
                     stream.view_count.clone(),
-                    stream_date.clone(),
+                    *stream_date,
                     stream.duration.clone(),
                     stream.summary_md.clone(),
                     stream.timestamp_md.clone(),
