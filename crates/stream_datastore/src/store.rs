@@ -2,7 +2,7 @@ use crate::Stream;
 use anyhow::Context;
 use sqlx::migrate::Migrator;
 use sqlx::{postgres::PgPoolOptions, PgPool};
-
+use std::collections::HashSet;
 #[derive(Debug, Clone)]
 pub struct DataStore {
     pub pool: PgPool,
@@ -32,16 +32,25 @@ impl DataStore {
         Ok(DataStore { pool })
     }
 
-    pub async fn stream_exists(&self, video_id: &str) -> anyhow::Result<bool> {
-        let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM streams WHERE video_id = $1")
-            .bind(video_id)
-            .fetch_one(&self.pool)
-            .await
-            .inspect_err(
-                |e| tracing::error!(error = ?e, video_id, "Failed to check if stream exists"),
-            )
-            .context("Failed to check if stream exists")?;
-        Ok(count.0 > 0)
+    pub async fn get_existing_stream_ids(
+        &self,
+        video_ids: &[&str],
+    ) -> anyhow::Result<HashSet<String>> {
+        #[derive(sqlx::FromRow)]
+        struct VideoId {
+            video_id: String,
+        }
+        let streams =
+            sqlx::query_as::<_, VideoId>("SELECT video_id FROM streams WHERE video_id = ANY($1)")
+                .bind(video_ids)
+                .fetch_all(&self.pool)
+                .await
+                .inspect_err(|e| {
+                    tracing::error!(error = ?e, "Failed to fetch existing streams");
+                })
+                .context("Failed to fetch existing streams")?;
+
+        Ok(streams.into_iter().map(|s| s.video_id).collect())
     }
 
     #[tracing::instrument(skip(self, streams))]
@@ -145,7 +154,7 @@ mod tests {
     use super::*;
 
     #[sqlx::test(migrator = "MIGRATOR")]
-    async fn test_bulk_insert_streams_works(pool: PgPool) {
+    async fn test_bulk_insert_and_check_existing_streams_works(pool: PgPool) {
         let datastore = DataStore { pool };
 
         let streams = vec![
@@ -176,9 +185,13 @@ mod tests {
         assert_eq!(result.successful_inserts, 2);
         assert!(result.failed_inserts.is_empty());
 
+        let existing_steams = datastore
+            .get_existing_stream_ids(&["test_video_1", "test_video_2"])
+            .await
+            .unwrap();
         // Verify that the streams were inserted
         for stream in &streams {
-            assert!(datastore.stream_exists(&stream.video_id).await.unwrap());
+            assert!(existing_steams.contains(&stream.video_id));
         }
     }
 }

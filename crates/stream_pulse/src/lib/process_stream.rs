@@ -1,11 +1,5 @@
-use std::{
-    fs::{create_dir_all, remove_dir_all, OpenOptions},
-    io::Write,
-    path::PathBuf,
-    sync::{Arc, LazyLock},
-};
-
 use anyhow::{bail, Context};
+use itertools::Itertools;
 use openai_dive::v1::{
     api::Client as OpenAiClient,
     resources::chat::{
@@ -21,6 +15,12 @@ use openai_dive::v1::{
     },
 };
 use rayon::prelude::*;
+use std::{
+    fs::{create_dir_all, remove_dir_all, OpenOptions},
+    io::Write,
+    path::PathBuf,
+    sync::{Arc, LazyLock},
+};
 use stream_datastore::{DataStore, Stream};
 use stream_digest::summarize_linear;
 use ytdlp_bindings::{AudioProcessor, YtDlp};
@@ -56,14 +56,13 @@ pub async fn fetch_and_process_streams(max_streams: usize) -> anyhow::Result<()>
     let yt_html_document = client.get(YOUTUBE_STREAM_URL).send().await?.text().await?;
     match extract_json_from_script(&yt_html_document) {
         Ok(json) => {
-            let mut streams = parse_streams(&json)?;
+            let streams = parse_streams(&json)?;
             tracing::info!(count = streams.len(), "Processing streams");
 
             // This is where initially downloaded audio by yt-dlp is saved
             let audio_download_path = PathBuf::from(format!("{WORKDIR}/audio"));
 
-            let mut streams =
-                sort_and_filter_existing_streams(max_streams, &db, &mut streams).await;
+            let mut streams = sort_and_filter_existing_streams(max_streams, &db, streams).await?;
 
             if streams.is_empty() {
                 tracing::info!("No streams to process at this time");
@@ -479,31 +478,35 @@ pub fn chat_completions_text_from_response(
 pub async fn sort_and_filter_existing_streams(
     max_streams: usize,
     db: &DataStore,
-    streams: &mut [Stream],
-) -> Vec<Stream> {
-    // Initially filter out streams already processed
-    // from raw stream data from yt document
-    let mut filtered = Vec::new();
+    streams: Vec<Stream>,
+) -> anyhow::Result<Vec<Stream>> {
+    let stream_ids = streams
+        .iter()
+        .map(|s| s.video_id.as_str())
+        .collect::<Vec<_>>();
+    let existing_stream_ids = db
+        .get_existing_stream_ids(&stream_ids)
+        .await
+        .inspect_err(|e| {
+            tracing::error!(error = ?e, "Failed to get existing stream IDs");
+        })
+        .context("Failed to get existing stream IDs")?;
 
-    for stream in streams.iter() {
-        match db.stream_exists(&stream.video_id).await {
-            Ok(false) => filtered.push(stream.clone()),
-            Ok(true) => {} // skip existing
-            Err(e) => {
-                tracing::warn!(video_id = %stream.video_id, error = %e, "Failed to check stream existence");
-            }
-        }
-    }
+    let result = streams
+        .iter()
+        .filter(|s| !existing_stream_ids.contains(&s.video_id))
+        // sort filtered streams by timestamp ascending (older streams first)
+        // newer streams will “wait their turn” behind older unprocessed ones.
+        .sorted_by(|a, b| {
+            a.timestamp_from_time_ago()
+                .cmp(&b.timestamp_from_time_ago())
+        })
+        // return the first 3 streams to avoid overloading system
+        .take(max_streams)
+        .cloned()
+        .collect::<Vec<_>>();
 
-    // sort filtered streams by timestamp ascending (older streams first)
-    // newer streams will “wait their turn” behind older unprocessed ones.
-    filtered.sort_by(|a, b| {
-        a.timestamp_from_time_ago()
-            .cmp(&b.timestamp_from_time_ago())
-    });
-
-    // return the first 3 streams to avoid overloading system
-    filtered.into_iter().take(max_streams).collect()
+    Ok(result)
 }
 
 /// Try to extract wait time from potential 429 error response
