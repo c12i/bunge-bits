@@ -4,7 +4,7 @@ use regex::Regex;
 use sqlx::FromRow;
 use std::fmt::Display;
 
-static TIME_AGO_REGEX: Lazy<Regex> =
+pub static TIME_AGO_REGEX: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago").unwrap());
 
 #[derive(Debug, FromRow, Clone, Default)]
