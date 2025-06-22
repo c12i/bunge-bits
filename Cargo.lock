@@ -2724,6 +2724,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "itertools",
  "once_cell",
  "regex",
  "sqlx",
