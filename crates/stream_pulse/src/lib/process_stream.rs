@@ -501,7 +501,7 @@ pub async fn sort_and_filter_existing_streams(
             a.timestamp_from_time_ago()
                 .cmp(&b.timestamp_from_time_ago())
         })
-        // return the first 3 streams to avoid overloading system
+        // return the first `max_streams` streams to avoid overloading system
         .take(max_streams)
         .cloned()
         .collect::<Vec<_>>();

@@ -2,8 +2,8 @@
 -- Date: 2025-06-19
 -- Purpose: Add full-text search support to `streams` table and log user search queries
 -- NOTE: These changes were applied manually in the database.
---       This file exists for documentation and reference purposes only.
--- TODO: Integrate these changes into a proper sqlx migration once migration support is added.
+-- We make use of `IF NOT EXISTS` to ensure that the migration can be run multiple times without error. ie: in the case of the production database.
+
 
 -- 1. Add column
 ALTER TABLE streams ADD COLUMN IF NOT EXISTS search_vector tsvector;
