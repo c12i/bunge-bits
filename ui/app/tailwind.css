@@ -44,6 +44,14 @@
   }
 }
 
+@layer utilities {
+  input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
