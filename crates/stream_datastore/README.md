@@ -1,36 +1,54 @@
-## Adding a migration:
+## Database Migrations & Development
 
-### Install sqlx cli
+### 1. Install `sqlx-cli`
 
-https://github.com/launchbadge/sqlx/blob/main/sqlx-cli/README.md#enable-building-in-offline-mode-with-query
+See the [sqlx-cli documentation](https://github.com/launchbadge/sqlx/blob/main/sqlx-cli/README.md#enable-building-in-offline-mode-with-query) for installation instructions.
 
-### Running a dev DB via docker-compose
+---
+
+### 2. Start a Development Database
+
+Start the dev database using Docker Compose:
 
 ```
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-### Create a `.env` file
+---
 
-- Copy the contents of `.env.development` to a `.env` file (still in the stream_datastore directory)
+### 3. Set Up Environment Variables
 
-### Adding the migration (while in the `stream_datastore` directory)
+Copy `.env.development` to `.env` in the `stream_datastore` directory:
+
+```
+cp .env.development .env
+```
+
+---
+
+### 4. Add a Migration
+
+While in the `stream_datastore` directory, add a new migration:
 
 ```
 sqlx migrate add <migration_name>
 ```
 
-### Running the migrations
+---
 
-- The migrations automatically run when `DataStore::init` runs
+### 5. Run Migrations
 
-- You can also test if your migrations work via the cli
+Migrations run automatically when `DataStore::init` is called.
+
+To run migrations manually via the CLI:
 
 ```
 sqlx migrate run
 ```
 
-### Adding tests
+---
 
-- If you want additional confidence that your db / schema changes are sound, please write a test.
-- Check `test_bulk_insert_and_check_existing_streams_works` to see how to write / structure the test.
+### 6. Testing Schema Changes
+
+For extra confidence in your DB/schema changes, write a test.  
+See `test_bulk_insert_and_check_existing_streams_works` for an example of how to structure these tests.
