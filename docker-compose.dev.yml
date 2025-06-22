@@ -1,0 +1,20 @@
+services:
+  database:
+    image: postgres:15.5-alpine
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dev_bunge_bits
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 1s
+      timeout: 1s
+      retries: 120
+    ports:
+      - 5432:5432
+    command: ["postgres", "-c", "log_statement=all"]
+
+volumes:
+  postgres-data: {}

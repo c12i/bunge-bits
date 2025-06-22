@@ -1,11 +1,14 @@
 use crate::Stream;
 use anyhow::Context;
+use sqlx::migrate::Migrator;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
 #[derive(Debug, Clone)]
 pub struct DataStore {
     pub pool: PgPool,
 }
+
+static MIGRATOR: Migrator = sqlx::migrate!();
 
 impl DataStore {
     /// Establish connection to database and create the streams table
@@ -20,24 +23,11 @@ impl DataStore {
             )
             .context("Failed to connect to database")?;
 
-        sqlx::query(
-            r#"
-            CREATE TABLE IF NOT EXISTS streams (
-                video_id TEXT PRIMARY KEY,
-                title TEXT NOT NULL,
-                view_count TEXT NOT NULL,
-                stream_timestamp TIMESTAMPTZ NOT NULL,
-                duration TEXT NOT NULL,
-                summary_md TEXT,
-                timestamp_md TEXT,
-                is_published BOOLEAN NOT NULL DEFAULT FALSE
-            )
-            "#,
-        )
-        .execute(&pool)
-        .await
-        .inspect_err(|e| tracing::error!(error = ?e, "Failed to create streams table"))
-        .context("Failed to create streams table")?;
+        MIGRATOR
+            .run(&pool)
+            .await
+            .inspect_err(|e| tracing::error!(error = ?e, "Failed to run database migrations"))
+            .context("Failed to run database migrations")?;
 
         Ok(DataStore { pool })
     }
@@ -145,4 +135,50 @@ pub struct FailedInsert {
 pub enum InsertFailReason {
     DuplicateEntry,
     OtherError(String),
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::Utc;
+    use sqlx::PgPool;
+
+    use super::*;
+
+    #[sqlx::test(migrator = "MIGRATOR")]
+    async fn test_bulk_insert_streams_works(pool: PgPool) {
+        let datastore = DataStore { pool };
+
+        let streams = vec![
+            Stream {
+                video_id: "test_video_1".to_string(),
+                title: "Test Video 1".to_string(),
+                view_count: 100.to_string(),
+                streamed_date: "1 hour ago".to_string(),
+                duration: chrono::Duration::seconds(3600).to_string(),
+                summary_md: Some("This is a test video summary".to_owned()),
+                timestamp_md: Some(Utc::now().to_string()),
+            },
+            Stream {
+                video_id: "test_video_2".to_string(),
+                title: "Test Video 2".to_string(),
+                view_count: 200.to_string(),
+                streamed_date: "2 days ago".to_string(),
+                duration: chrono::Duration::seconds(7200).to_string(),
+                summary_md: Some("This is another test video summary".to_owned()),
+                timestamp_md: Some(Utc::now().to_string()),
+            },
+        ];
+
+        // Insert streams
+        let result = datastore.bulk_insert_streams(&streams).await.unwrap();
+
+        // Check results
+        assert_eq!(result.successful_inserts, 2);
+        assert!(result.failed_inserts.is_empty());
+
+        // Verify that the streams were inserted
+        for stream in &streams {
+            assert!(datastore.stream_exists(&stream.video_id).await.unwrap());
+        }
+    }
 }

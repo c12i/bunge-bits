@@ -1,7 +1,11 @@
+use chrono::{DateTime, Duration, Utc};
+use once_cell::sync::Lazy;
+use regex::Regex;
+use sqlx::FromRow;
 use std::fmt::Display;
 
-use chrono::{DateTime, Duration, Utc};
-use sqlx::FromRow;
+static TIME_AGO_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago").unwrap());
 
 #[derive(Debug, FromRow, Clone, Default)]
 pub struct Stream {
@@ -44,9 +48,7 @@ impl Stream {
     pub fn timestamp_from_time_ago(&self) -> Option<DateTime<Utc>> {
         let now = Utc::now();
 
-        let re =
-            regex::Regex::new(r"(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago").unwrap();
-        if let Some(captures) = re.captures(&self.streamed_date) {
+        if let Some(captures) = TIME_AGO_REGEX.captures(&self.streamed_date) {
             let amount: i64 = captures[1].parse().unwrap();
             let unit = &captures[2];
 
