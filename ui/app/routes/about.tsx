@@ -21,7 +21,10 @@ export default function AboutPage() {
       <p>
         At the core of Bunge Bits is a fully automated pipeline that:
         <ol className="list-decimal list-inside mt-2 space-y-1">
-          <li>Scrapes livestreams from official YouTube channels</li>
+          <li>
+            Periodically scrapes archived livestreams from the official Parliament of
+            Kenya YouTube channel
+          </li>
           <li>Downloads and transcribes audio using OpenAI Whisper</li>
           <li>Generates structured summaries with GPT-4o</li>
         </ol>
