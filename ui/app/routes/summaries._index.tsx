@@ -1,6 +1,12 @@
 import { PrismaClient } from "@prisma-app/client";
 import { LoaderFunctionArgs } from "@remix-run/node";
-import { Link, useLoaderData, useSearchParams, useSubmit } from "@remix-run/react";
+import {
+  Link,
+  useLoaderData,
+  useLocation,
+  useSearchParams,
+  useSubmit,
+} from "@remix-run/react";
 import { Calendar, Play, Search, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import removeMarkdown from "remove-markdown";
@@ -120,6 +126,7 @@ async function fallbackSearch(query: string, page: number) {
 
 export default function Index() {
   const { streams, total, query } = useLoaderData<typeof loader>();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const page = Number(searchParams.get("page") || 1);
   const pageCount = Math.ceil(total / PAGE_SIZE);
@@ -222,7 +229,12 @@ export default function Index() {
                     .replace(/\\n/g, " ")
                     .replace(/\s+/g, " ") || "No summary available."}
                 </CardDescription>
-                <Link to={`/summaries/${stream.video_id}`}>
+                <Link
+                  to={{
+                    pathname: `/summaries/${stream.video_id}`,
+                    search: location.search,
+                  }}
+                >
                   <Button className="w-full bg-red-800 hover:bg-red-900 text-white">
                     Read Full Summary
                   </Button>

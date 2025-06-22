@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma-app/client";
 import { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
-import { Link, useLoaderData } from "@remix-run/react";
-import { ArrowLeft, Calendar, Clock, Users } from "lucide-react";
+import { Link, useLoaderData, useLocation } from "@remix-run/react";
+import { ArrowLeft, Calendar, Clock, Youtube } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 import { Badge } from "~/components/ui/badge";
@@ -67,13 +67,16 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 export default function StreamSummary() {
   const { stream } = useLoaderData<typeof loader>();
   const rawMarkdown = stream.summary_md || "";
-  const cleanedMarkdown = rawMarkdown.replace(/\\n/g, "\n"); // key line
+  const cleanedMarkdown = rawMarkdown.replace(/\\n/g, "\n");
+
+  const location = useLocation();
+  const backSearch = location.search || "";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6">
-          <Link to="/summaries">
+          <Link to={{ pathname: `/summaries`, search: backSearch }}>
             <Button variant="ghost" className="mb-4 hover:bg-white/50">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Summaries
@@ -97,7 +100,7 @@ export default function StreamSummary() {
                   {formatDuration(stream.duration)}
                 </div>
                 <div className="flex items-center">
-                  <Users className="w-4 h-4 mr-2" />
+                  <Youtube className="w-4 h-4 mr-2" />
                   {stream.view_count}
                 </div>
               </div>
