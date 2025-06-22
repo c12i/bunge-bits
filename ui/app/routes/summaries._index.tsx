@@ -7,7 +7,7 @@ import {
   useSearchParams,
   useSubmit,
 } from "@remix-run/react";
-import { Calendar, Play, Search, Users } from "lucide-react";
+import { Calendar, Play, Search, Youtube } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import removeMarkdown from "remove-markdown";
 
@@ -218,7 +218,7 @@ export default function Index() {
                     {formatDuration(stream.duration)}
                   </div>
                   <div className="flex items-center">
-                    <Users className="w-3 h-3 mr-1" />
+                    <Youtube className="w-3 h-3 mr-1" />
                     {stream.view_count}
                   </div>
                 </div>
