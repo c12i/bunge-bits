@@ -22,6 +22,7 @@ import {
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { useDebounce } from "~/lib/hooks";
+import { highlightText } from "~/lib/text-highlight";
 import { formatDate, formatDuration } from "~/lib/utils";
 
 const prisma = new PrismaClient();
@@ -29,7 +30,8 @@ const PAGE_SIZE = 9;
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
-  const query = url.searchParams.get("q")?.trim();
+
+  const query = url.searchParams.get("q")?.trim() || "";
   const page = Math.max(parseInt(url.searchParams.get("page") || "1", 10), 1);
 
   const CACHE_HEADERS = {
@@ -128,10 +130,12 @@ export default function Index() {
   const { streams, total, query } = useLoaderData<typeof loader>();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+
   const page = Number(searchParams.get("page") || 1);
   const pageCount = Math.ceil(total / PAGE_SIZE);
 
   const { inputValue, handleInputChange, handleClearSearch } = useSearch();
+  const queryTerms = query?.toLowerCase().split(/\s+/).filter(Boolean);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
@@ -210,7 +214,7 @@ export default function Index() {
                   </div>
                 </div>
                 <CardTitle className="text-lg leading-tight group-hover:text-red-800 transition-colors">
-                  {stream.title}
+                  {highlightText(stream.title, queryTerms)}
                 </CardTitle>
                 <div className="flex items-center gap-4 text-xs text-gray-500">
                   <div className="flex items-center">
@@ -225,9 +229,12 @@ export default function Index() {
               </CardHeader>
               <CardContent className="pt-0">
                 <CardDescription className="line-clamp-3 mb-4 text-sm leading-relaxed">
-                  {removeMarkdown(stream.summary_md)
-                    .replace(/\\n/g, " ")
-                    .replace(/\s+/g, " ") || "No summary available."}
+                  {highlightText(
+                    removeMarkdown(stream.summary_md)
+                      .replace(/\\n/g, " ")
+                      .replace(/\s+/g, " ") || "No summary available.",
+                    queryTerms
+                  )}
                 </CardDescription>
                 <Link
                   to={{
