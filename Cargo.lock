@@ -2725,7 +2725,6 @@ dependencies = [
  "anyhow",
  "chrono",
  "itertools",
- "once_cell",
  "regex",
  "sqlx",
  "tracing",

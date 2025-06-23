@@ -3,10 +3,9 @@ use crate::Stream;
 use anyhow::Context;
 use itertools::Either;
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use sqlx::migrate::Migrator;
 use sqlx::{postgres::PgPoolOptions, PgPool};
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::LazyLock};
 #[derive(Debug, Clone)]
 pub struct DataStore {
     pub pool: PgPool,
@@ -18,7 +17,7 @@ impl DataStore {
     /// Establish connection to database and create the streams table
     /// if not exists
     pub async fn init(database_url: &str) -> anyhow::Result<Self> {
-        Lazy::force(&TIME_AGO_REGEX);
+        LazyLock::force(&TIME_AGO_REGEX);
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .connect(database_url)

@@ -1,12 +1,11 @@
 use chrono::{DateTime, Duration, Utc};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use sqlx::FromRow;
 use std::fmt::Display;
 
-pub static TIME_AGO_REGEX: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago").unwrap());
-
+pub static TIME_AGO_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"(\d+)\s+(seconds?|minutes?|hours?|days?|weeks?|months?|years?)\s+ago").unwrap()
+});
 #[derive(Debug, FromRow, Clone, Default)]
 pub struct Stream {
     pub video_id: String,
