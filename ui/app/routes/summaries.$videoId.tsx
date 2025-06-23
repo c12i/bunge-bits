@@ -8,6 +8,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { formatDate, formatDuration } from "~/lib/utils";
+import { highlightText, highlightChildren } from "~/lib/text-highlight";
 
 const prisma = new PrismaClient();
 
@@ -72,6 +73,9 @@ export default function StreamSummary() {
   const location = useLocation();
   const backSearch = location.search || "";
 
+  const query = new URLSearchParams(location.search).get("q") || "";
+  const queryTerms = query?.toLowerCase().split(/\s+/).filter(Boolean);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       <main className="container mx-auto px-4 py-8 max-w-4xl">
@@ -107,7 +111,7 @@ export default function StreamSummary() {
             </div>
 
             <CardTitle className="text-2xl md:text-3xl leading-tight text-gray-900 mb-4">
-              {stream.title}
+              {highlightText(stream.title, queryTerms)}
             </CardTitle>
           </CardHeader>
 
@@ -127,7 +131,36 @@ export default function StreamSummary() {
           <CardContent className="space-y-8">
             <div>
               <div className="markdown">
-                <ReactMarkdown>{cleanedMarkdown}</ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    p({ children }) {
+                      return <p>{highlightChildren(children, queryTerms)}</p>;
+                    },
+                    h1({ children }) {
+                      return <h1>{highlightChildren(children, queryTerms)}</h1>;
+                    },
+                    h2({ children }) {
+                      return <h2>{highlightChildren(children, queryTerms)}</h2>;
+                    },
+                    li({ children }) {
+                      return <li>{highlightChildren(children, queryTerms)}</li>;
+                    },
+                    blockquote: ({ children }) => (
+                      <blockquote>{highlightChildren(children, queryTerms)}</blockquote>
+                    ),
+                    strong: ({ children }) => (
+                      <strong>{highlightChildren(children, queryTerms)}</strong>
+                    ),
+                    em: ({ children }) => (
+                      <em>{highlightChildren(children, queryTerms)}</em>
+                    ),
+                    span: ({ children }) => (
+                      <span>{highlightChildren(children, queryTerms)}</span>
+                    ),
+                  }}
+                >
+                  {cleanedMarkdown}
+                </ReactMarkdown>
               </div>
             </div>
           </CardContent>
