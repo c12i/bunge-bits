@@ -7,8 +7,8 @@ import ReactMarkdown from "react-markdown";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { highlightChildren, highlightText } from "~/lib/text-highlight";
 import { formatDate, formatDuration } from "~/lib/utils";
-import { highlightText, highlightChildren } from "~/lib/text-highlight";
 
 const prisma = new PrismaClient();
 
