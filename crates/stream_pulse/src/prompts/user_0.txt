@@ -1,48 +1,71 @@
 **General Instructions**
+
 1. Analyze the provided chunk of a YouTube live stream transcript.
 
 2. If provided, review the previous summaries to maintain context and avoid repetition.
 
 3. Create a summary containing the following information:
-   - **Bills discussed** (only include by name if explicitly mentioned—and only if there were any bills discussed) - (skip this if no bills were discussed)
-   - **Other topics discussed**
-   - **Key takeaways and decisions made** regarding particular topics or bills
-   - **Major participants** in discussions/debates (use general terms like "an MP", "a senator", "the speaker", etc. when you suspect a misspelling or cannot confirm the name)
-   - **Key moments with timestamps** (include only if timestamps are present in the transcript chunk)
+
+   * **Bills discussed** (only include by name if explicitly mentioned—and only if there were any bills discussed) — skip this section if none were discussed.
+   * **Other topics discussed**
+   * **Key takeaways and decisions made** regarding particular topics or bills
+   * **Major participants** in discussions/debates (use general terms like "an MP", "a senator", "the speaker", etc. when you suspect a misspelling or cannot confirm the name)
+   * **Key moments with timestamps** (include only if timestamps are present in the transcript chunk)
 
 4. Generate a **concise, descriptive title** summarizing the core focus of the transcript using the following template:
-
-   ${{TITLE}} – ${{DATE}}
+   `${{TITLE}} – ${{DATE}}`
 
 5. Start with a **1–2 sentence summary paragraph**. This should give a brief, readable overview of what the session covered and what outcomes or tensions emerged. Keep it factual, neutral, and concise.
 
 6. Format your response in **markdown**, using appropriate headers, bullet points, and emphasis:
-   - Use `##` headers for sections like *Bills Discussed*, *Topics Discussed*, etc.
-   - Use **bold** for final decisions or outcomes (e.g. **approved**, **rejected**, **investigation launched**)
-   - Use *italics* for controversial or unresolved issues
 
-**Name Handling Instructions**:
+   * Use `##` headers for sections like *Bills Discussed*, *Topics Discussed*, etc.
+   * Use **bold** for final decisions or outcomes (e.g. **approved**, **rejected**, **investigation launched**)
+   * Use *italics* for controversial or unresolved issues, emotionally charged statements, or tense exchanges
+   * If a particularly powerful or quotable phrase is used, include it in quotation marks
+
+---
+
+**Emphasize Controversial or Memorable Moments**
+
+If the transcript contains:
+
+* Heated exchanges
+* Emotionally charged language
+* Bold accusations
+* Tense procedural moments
+* Memorable quotes
+
+Be sure to include them in the *Key Takeaways* section. These moments are important for public interest and civic memory. You may also include them under *Notable Quotes* if appropriate.
+
+---
+
+**Name Handling Instructions**
+
 1. If a name appears to be clearly mistranscribed, you are allowed to correct it using your knowledge of current Kenyan political figures (e.g. MPs, Senators, CSs, Judiciary officials, or Executive members).
 2. Corrections should only be made when you are highly confident about the intended individual based on context (e.g. role mentioned, bill discussed, common parliamentary appearances).
 3. When unsure or the name is ambiguous, fall back to general descriptions like "a senator", "an MP", or "a Cabinet Secretary".
 4. Do not invent names or titles that aren’t grounded in your knowledge or the transcript context.
 
-Examples:
-“John Birdy, CS of Treasury” → correct to “John Mbadi, Cabinet Secretary for the National Treasury”
-“Martha Koomey” → correct to “Martha Koome, Chief Justice”
-“Saleyum Dabdi” (unclear) → keep as “a senator”
+**Examples**:
+
+* “John Birdy, CS of Treasury” → correct to “John Mbadi, Cabinet Secretary for the National Treasury”
+* “Martha Koomey” → correct to “Martha Koome, Chief Justice”
+* “Saleyum Dabdi” (unclear) → keep as “a senator”
+
+---
 
 **Other Points to Note**
-1. Remember to focus on extracting the most relevant and important information from the transcript, and maintain coherence with prior summaries if provided.
-2. Do not wrap your response in triple backticks or any language fences. Just return valid markdown.
-3. Do not use emojis or informal symbols. Maintain a clean, professional presentation style appropriate for civic and institutional communication.
 
-**Example input**:
-[transcript chunk]
-[Optional: Previous summaries]
+1. Focus on extracting the most relevant and important information from the transcript, including *substantive exchanges*, *controversies*, and *emerging tensions*, even if no clear resolution was reached.
+2. Do not wrap your response in triple backticks or language fences. Just return valid markdown.
+3. Do not use emojis or informal symbols. Maintain a clean, professional presentation style suitable for civic and institutional use.
 
-**Expected output format**:
+---
 
+**Expected output format:**
+
+```markdown
 {{Summary paragraph: 1–2 sentences giving a plain-language overview of the session. Include the house, main theme, key decisions, or tensions if any. Keep it factual and concise.}}
 
 ## Bills Discussed
@@ -53,8 +76,8 @@ Examples:
 
 ## Key Takeaways and Decisions
 - **{{Final decisions or outcomes}}**, e.g. **approved**, **rejected**, **referred to committee**
-- *{{Unresolved or controversial topics}}*, e.g. *debate on pension tax remains open*
-- {{Reform proposals, public statements, or policy changes announced}}
+- *{{Unresolved or controversial topics}}*, e.g. *debate on police brutality remains open*
+- *“{{Quoted statement}}”* – when impactful or repeated by multiple members
 
 ## Major Participants
 - {{Use general terms unless a name is clearly known and accurate}}
@@ -65,7 +88,11 @@ Examples:
 - {{HH:MM:SS}} {{Notable quote, event, or procedural action if timestamp is known}}
 - {{HH:MM:SS}} {{Another notable moment or debate exchange}}
 
+## Notable Quotes
+- *“We cannot be the House that stands silent while our youth are killed.”* – an MP
+- *“This Bill is a betrayal of hustlers.”* – a senator
+
 ---
 
 *This summary was generated from official YouTube streams of the Kenyan Parliament using bunge-bits, an automated transcription and summarization tool.*
-
+```
