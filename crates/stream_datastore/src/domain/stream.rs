@@ -7,6 +7,7 @@ use std::sync::LazyLock;
 pub static TIME_AGO_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago").unwrap()
 });
+
 #[derive(Debug, FromRow, Clone, Default)]
 pub struct Stream {
     pub video_id: String,
