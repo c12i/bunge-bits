@@ -12,6 +12,7 @@ path = "./src/lib.rs"
 anyhow = { workspace = true }
 chrono = "0.4.38"
 regex = "1.10.6"
+itertools = { workspace = true }
 tracing = { workspace = true }
 sqlx = { version = "0.8.6", features = [
   "postgres",

@@ -19,3 +19,6 @@ target/
 # Reference youtube html for parsing
 yt.html
 cookies.txt
+
+.env
+**/.env
