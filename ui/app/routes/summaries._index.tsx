@@ -7,7 +7,7 @@ import {
   useSearchParams,
   useSubmit,
 } from "@remix-run/react";
-import { Calendar, Play, Search, Youtube } from "lucide-react";
+import { Calendar, Clock, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import removeMarkdown from "remove-markdown";
 
@@ -218,12 +218,8 @@ export default function Index() {
                 </CardTitle>
                 <div className="flex items-center gap-4 text-xs text-gray-500">
                   <div className="flex items-center">
-                    <Play className="w-3 h-3 mr-1" />
+                    <Clock className="w-3 h-3 mr-1" />
                     {formatDuration(stream.duration)}
-                  </div>
-                  <div className="flex items-center">
-                    <Youtube className="w-3 h-3 mr-1" />
-                    {stream.view_count}
                   </div>
                 </div>
               </CardHeader>
