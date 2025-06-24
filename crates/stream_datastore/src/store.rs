@@ -4,6 +4,7 @@ use anyhow::Context;
 use itertools::{Either, Itertools};
 use sqlx::{migrate::Migrator, postgres::PgPoolOptions, PgPool};
 use std::{collections::HashSet, sync::LazyLock};
+
 #[derive(Debug, Clone)]
 pub struct DataStore {
     pub pool: PgPool,
