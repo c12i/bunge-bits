@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma-app/client";
 import { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { Link, useLoaderData, useLocation } from "@remix-run/react";
-import { ArrowLeft, Calendar, Clock, Youtube } from "lucide-react";
+import { ArrowLeft, Calendar, Clock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 import { Badge } from "~/components/ui/badge";
@@ -102,10 +102,6 @@ export default function StreamSummary() {
                 <div className="flex items-center">
                   <Clock className="w-4 h-4 mr-2" />
                   {formatDuration(stream.duration)}
-                </div>
-                <div className="flex items-center">
-                  <Youtube className="w-4 h-4 mr-2" />
-                  {stream.view_count}
                 </div>
               </div>
             </div>
