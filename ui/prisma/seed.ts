@@ -45,7 +45,6 @@ async function main() {
   ];
 
   for (const s of streams) {
-    console.log(deriveHouse(s.title));
     await prisma.streams.upsert({
       where: { video_id: s.video_id },
       update: {},
