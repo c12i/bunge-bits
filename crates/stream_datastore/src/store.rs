@@ -1,10 +1,8 @@
 use crate::domain::TIME_AGO_REGEX;
 use crate::Stream;
 use anyhow::Context;
-use itertools::Either;
-use itertools::Itertools;
-use sqlx::migrate::Migrator;
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use itertools::{Either, Itertools};
+use sqlx::{migrate::Migrator, postgres::PgPoolOptions, PgPool};
 use std::{collections::HashSet, sync::LazyLock};
 #[derive(Debug, Clone)]
 pub struct DataStore {
