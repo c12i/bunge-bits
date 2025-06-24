@@ -2,8 +2,9 @@ use chrono::{DateTime, Duration, Utc};
 use regex::Regex;
 use sqlx::FromRow;
 use std::fmt::Display;
+use std::sync::LazyLock;
 
-pub static TIME_AGO_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+pub static TIME_AGO_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(\d+)\s+(seconds?|minutes?|hours?|days?|weeks?|months?|years?)\s+ago").unwrap()
 });
 #[derive(Debug, FromRow, Clone, Default)]
