@@ -2731,14 +2731,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "stream_digest"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "tokio",
-]
-
-[[package]]
 name = "stream_pulse"
 version = "0.1.0"
 dependencies = [

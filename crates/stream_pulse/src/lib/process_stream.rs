@@ -107,7 +107,10 @@ fn handle_stream_audio(
 
     // Skip download if .mp3 already exists
     if !audio_mp3_path.exists() {
-        ytdlp.download_audio(&youtube_stream, &audio_base_path)?;
+        if let Err(e) = ytdlp.download_audio(&youtube_stream, &audio_base_path) {
+            tracing::error!(error = ?e, "Failed to download video");
+            bail!("Failed to download video: {:?}", e);
+        };
     } else {
         tracing::debug!("Audio already exists at {:?}", audio_mp3_path);
     }
