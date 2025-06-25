@@ -22,7 +22,6 @@ use std::{
     sync::{Arc, LazyLock},
 };
 use stream_datastore::{DataStore, Stream};
-use stream_digest::summarize_linear;
 use ytdlp_bindings::{AudioProcessor, YtDlp};
 
 use crate::{extract_json_from_script, parse_streams};
@@ -40,7 +39,6 @@ static OPENAI: LazyLock<OpenAiClient> = LazyLock::new(openai_dive::v1::api::Clie
 const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChannel/streams";
 // Work directory - basically where all artifacts will be stored
 const WORKDIR: &str = "/var/tmp/bunge-bits";
-const TRANSCRIPT_CHUNK_DELIMITER: &str = "----END_OF_CHUNK----";
 
 #[tracing::instrument]
 pub async fn fetch_and_process_streams(max_streams: usize) -> anyhow::Result<()> {
@@ -154,8 +152,7 @@ async fn transcribe_streams(streams: &[Stream], openai: &OpenAiClient) -> anyhow
         for entry in entries {
             match transcribe_audio(entry.path(), openai).await {
                 Ok(transcription) => {
-                    write!(transcript_file, "{}", transcription)?;
-                    writeln!(transcript_file, "{}", TRANSCRIPT_CHUNK_DELIMITER)?;
+                    writeln!(transcript_file, "{}", transcription)?;
                 }
                 Err(err) => {
                     tracing::error!(error = ?err, "Skipping failed chunk {}", entry.path().display());
@@ -222,30 +219,9 @@ async fn summarize_streams(
         let transcript = std::fs::read_to_string(&transcript_path)
             .with_context(|| format!("Failed to read transcript at {}", transcript_path))?;
 
-        let result = summarize_linear(
-            &transcript,
-            TRANSCRIPT_CHUNK_DELIMITER,
-            {
-                let openai = openai.clone();
-                let stream = stream.clone();
-                move |chunk, ctx| {
-                    let openai = openai.clone();
-                    let stream = stream.clone();
-                    Box::pin(async move { summarize_chunk(chunk, &stream, ctx, &openai).await })
-                }
-            },
-            {
-                let openai = openai.clone();
-                let stream = stream.clone();
-                move |summaries| {
-                    let openai = openai.clone();
-                    let stream = stream.clone();
-                    Box::pin(async move { combine_summaries(summaries, &stream, &openai).await })
-                }
-            },
-        )
-        .await
-        .with_context(|| format!("Failed to summarize stream {}", stream.video_id))?;
+        let result = summarize_stream(stream, openai.as_ref(), transcript)
+            .await
+            .with_context(|| format!("Failed to summarize stream {}", stream.video_id))?;
 
         // TODO: Add guard to detect malformed or incomplete LLM output
         stream.summary_md = Some(result);
@@ -256,41 +232,14 @@ async fn summarize_streams(
     Ok(())
 }
 
-#[tracing::instrument(skip(chunk, stream, context, openai))]
-async fn summarize_chunk(
-    chunk: String,
+#[tracing::instrument(skip(stream, openai, transcript))]
+async fn summarize_stream(
     stream: &Stream,
-    context: Option<Arc<String>>,
     openai: &OpenAiClient,
+    transcript: String,
 ) -> anyhow::Result<String> {
-    let user_prompt = context
-        .map(|ctx| {
-            format!(
-                r#"
-Context:
-{}
+    let user_prompt = format!("The full transcript:\n\n{transcript}");
 
-Transcript Chunk:
-{}
-
-Based on the transcript chunk and the provided context, please summarize it based on the instructions you received previously.
-                "#,
-                ctx, chunk
-            )
-        })
-        .unwrap_or_else(|| {
-            format!(
-                r#"
-Transcript Chunk:
-{}
-
-Based on the transcript chunk, please summarize it based on the instructions you received previously.
-                "#,
-                chunk
-            )
-        });
-
-    // TODO: Add web-search capability
     let parameters = ChatCompletionParametersBuilder::default()
         .model(FlagshipModel::Gpt4O.to_string())
         .messages(vec![
@@ -324,7 +273,7 @@ Based on the transcript chunk, please summarize it based on the instructions you
     let max_attempts = 5;
 
     loop {
-        tracing::info!(attempt, "Summarizing chunk");
+        tracing::info!(attempt, "Summarizing stream");
 
         match openai.chat().create(parameters.clone()).await {
             Ok(response) => break chat_completions_text_from_response(response),
@@ -349,93 +298,6 @@ Based on the transcript chunk, please summarize it based on the instructions you
                     attempt,
                     wait_ms,
                     "Rate limit hit or other error. Retrying after {}ms (attempt {}/{})",
-                    wait_ms,
-                    attempt,
-                    max_attempts
-                );
-
-                tokio::time::sleep(std::time::Duration::from_millis(wait_ms)).await;
-            }
-        }
-    }
-}
-
-#[tracing::instrument(skip(stream, summaries, openai))]
-async fn combine_summaries(
-    summaries: Vec<String>,
-    stream: &Stream,
-    openai: &OpenAiClient,
-) -> anyhow::Result<String> {
-    let summaries = summaries.join("\n");
-
-    let prompt = format!(
-        r#"
-Given the following markdown summaries of individual transcript chunks from a Kenyan Parliament stream, combine them into one single, coherent markdown summary. Follow the same formatting instructions you were given previously, including front matter, summary paragraph, and all structured sections.
-
-Summaries:
-{}
-        "#,
-        summaries
-    );
-
-    // TODO: Add web-search capability
-    let parameters = ChatCompletionParametersBuilder::default()
-        .model(FlagshipModel::Gpt4O.to_string())
-        .messages(vec![
-            ChatMessage::System {
-                content: ChatMessageContent::Text(include_str!("../prompts/system_0.txt").into()),
-                name: None,
-            },
-            ChatMessage::User {
-                content: ChatMessageContent::Text(
-                    include_str!("../prompts/user_0.txt")
-                        .replace("${{TITLE}}", &stream.title)
-                        .replace(
-                            "${{DATE}}",
-                            &stream
-                                .timestamp_from_time_ago()
-                                .map(|v| v.to_string())
-                                .unwrap_or_else(|| "${{DATE: inferred from summary}}".to_string()),
-                        ),
-                ),
-                name: None,
-            },
-            ChatMessage::User {
-                content: ChatMessageContent::Text(prompt),
-                name: None,
-            },
-        ])
-        .response_format(ChatCompletionResponseFormat::Text)
-        .build()?;
-
-    let mut attempt = 0;
-    let max_attempts = 5;
-
-    loop {
-        tracing::info!(attempt, "Combining summaries");
-
-        match openai.chat().create(parameters.clone()).await {
-            Ok(response) => break chat_completions_text_from_response(response),
-            Err(err) => {
-                attempt += 1;
-
-                let err_str = format!("{:?}", err);
-                let wait_ms = extract_wait_time_ms_from_error(&err_str).unwrap_or_else(|| {
-                    let fallback = 2_u64.pow(attempt) * 1000;
-                    tracing::warn!(attempt, "No wait time found, using fallback {}ms", fallback);
-                    fallback
-                });
-
-                if attempt >= max_attempts {
-                    tracing::error!(error = ?err, "combine_summaries failed after {} attempts", attempt);
-                    return Err(err.into());
-                }
-
-                tracing::warn!(
-                    error = ?err,
-                    wait_ms,
-                    attempt,
-                    "Retrying combine_summaries after {}ms (attempt {}/{})",
                     wait_ms,
                     attempt,
                     max_attempts

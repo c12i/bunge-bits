@@ -2757,7 +2757,6 @@ dependencies = [
  "serde",
  "serde_json",
  "stream_datastore",
- "stream_digest",
  "thiserror",
  "tokio",
  "tokio-cron-scheduler",
