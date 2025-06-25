@@ -38,6 +38,7 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
    ```
 3. Run migrations from project root:
    ```bash
+   cd crates/stream_datastore
    sqlx migrate run
    ```
    This applies:
