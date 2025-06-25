@@ -41,10 +41,7 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
    cd crates/stream_datastore
    sqlx migrate run
    ```
-   This applies:
-   - Initial streams table creation
-   - Full-text search setup
-   - House generated column addition
+   This applies migrations in `crates/stream_datastore/migrations`
 
 4. For the UI (optional):
    ```bash
