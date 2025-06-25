@@ -74,7 +74,7 @@ export default function StreamSummary() {
   const backSearch = location.search || "";
 
   const query = new URLSearchParams(location.search).get("q") || "";
-  const queryTerms = query?.toLowerCase().split(/\s+/).filter(Boolean);
+  const queryTerm = query?.toLowerCase().trim() || "";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
@@ -107,7 +107,7 @@ export default function StreamSummary() {
             </div>
 
             <CardTitle className="text-2xl md:text-3xl leading-tight text-gray-900 mb-4">
-              {highlightText(stream.title, queryTerms)}
+              {highlightText(stream.title, queryTerm)}
             </CardTitle>
           </CardHeader>
 
@@ -130,28 +130,28 @@ export default function StreamSummary() {
                 <ReactMarkdown
                   components={{
                     p({ children }) {
-                      return <p>{highlightChildren(children, queryTerms)}</p>;
+                      return <p>{highlightChildren(children, queryTerm)}</p>;
                     },
                     h1({ children }) {
-                      return <h1>{highlightChildren(children, queryTerms)}</h1>;
+                      return <h1>{highlightChildren(children, queryTerm)}</h1>;
                     },
                     h2({ children }) {
-                      return <h2>{highlightChildren(children, queryTerms)}</h2>;
+                      return <h2>{highlightChildren(children, queryTerm)}</h2>;
                     },
                     li({ children }) {
-                      return <li>{highlightChildren(children, queryTerms)}</li>;
+                      return <li>{highlightChildren(children, queryTerm)}</li>;
                     },
                     blockquote: ({ children }) => (
-                      <blockquote>{highlightChildren(children, queryTerms)}</blockquote>
+                      <blockquote>{highlightChildren(children, queryTerm)}</blockquote>
                     ),
                     strong: ({ children }) => (
-                      <strong>{highlightChildren(children, queryTerms)}</strong>
+                      <strong>{highlightChildren(children, queryTerm)}</strong>
                     ),
                     em: ({ children }) => (
-                      <em>{highlightChildren(children, queryTerms)}</em>
+                      <em>{highlightChildren(children, queryTerm)}</em>
                     ),
                     span: ({ children }) => (
-                      <span>{highlightChildren(children, queryTerms)}</span>
+                      <span>{highlightChildren(children, queryTerm)}</span>
                     ),
                   }}
                 >
