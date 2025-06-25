@@ -104,4 +104,4 @@ Close every summary with the following footer:
 
 ---
 
-*This summary was generated from official Hansard transcripts of the Kenyan Parliament using **bunge-bits**, an automated transcription and summarization tool.*
+*This summary was generated from official YouTube livestreams of the Kenyan Parliament using **bunge-bits**, an automated transcription and summarization tool.*
