@@ -135,7 +135,7 @@ export default function Index() {
   const pageCount = Math.ceil(total / PAGE_SIZE);
 
   const { inputValue, handleInputChange, handleClearSearch } = useSearch();
-  const queryTerms = query?.toLowerCase().split(/\s+/).filter(Boolean);
+  const queryTerms = query?.toLowerCase().trim() || "";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
