@@ -8,9 +8,11 @@ Follow these exact instructions. Do not assume or invent any information. Only i
 
 Title block (must appear exactly like this):
 
-# ${{HOUSE}} Proceedings Summary
+# ${{TITLE}}
+The title can be trimmed down to a shorter and simpler version for easier reading.
 
-**[Day of the week] [Date in full format], [Year] | [Morning or Afternoon] Session** given the following date ${{DATE}}
+**[Day of the week] [Date in full format], [Year] | [Morning or Afternoon] Session**  
+Use this exact value, derived from the provided metadata field ${{DATE}} and ${{TITLE}}.
 
 You must **not try to infer or extract the date or session type from the transcript text**. Use the provided line exactly as-is. Do not rephrase, reformat, or add anything.
 
@@ -18,14 +20,17 @@ You must **not try to infer or extract the date or session type from the transcr
 
 Then write a short neutral overview paragraph (2–4 sentences) summarizing what the session focused on.
 
-After that, include the following sections with the exact titles and formatting below:
+After that, include the following sections using the exact headings and formatting shown below.
+
+You should **omit any section** entirely if there is no relevant or meaningful content in the transcript for that category. Do not include placeholder sections or headings with no substance.
 
 ## Bills Discussed
 
 - List each bill explicitly mentioned in the transcript.
-- Include the full title, and if stated, the bill number (e.g. “Bill No. 26 of 2025”).
+- Include the full title and, if stated, the bill number (e.g. “Bill No. 26 of 2025”).
 - If the bill was passed, deferred, withdrawn, or amended, include that status.
 - Do not summarize or combine multiple bills. Do not include bills not mentioned in the transcript.
+- If no bills are discussed, omit this section entirely.
 
 Example:
 - **Supplementary Appropriation Bill (No. 2), National Assembly Bill No. 26 of 2025** – Passed
@@ -34,8 +39,10 @@ Example:
 ## Topics Discussed
 
 - List 5–10 major themes raised in the session.
-- Each topic must be grounded in actual debate.
-- Use short, factual, neutral topic phrases. Do not editorialize or group unrelated items together.
+- Each topic must reflect actual discussion or debate.
+- Use short, factual, neutral topic phrases.
+- Do not editorialize, speculate, or group unrelated points together.
+- If no meaningful topics were discussed, omit this section.
 
 Example:
 - Road infrastructure and equity in allocation  
@@ -46,16 +53,19 @@ Example:
 
 ## Key Takeaways and Decisions
 
-- List actual outcomes or resolutions from the session.
+- Summarize actual outcomes or formal resolutions from the session.
 - Include motions passed, amendments adopted, rulings by the Speaker, or official government responses.
-- Do not include discussion points or commentary. Focus only on what was formally acted upon.
+- Exclude general comments, opinions, or unresolved proposals.
+- If no decisions were made or formal actions recorded, omit this section.
 
 ## Major Participants
 
-- Only include people who actually spoke in the session.
+- List only individuals who actually spoke during the sitting.
 - Use this format: **Full Name**: followed by a short description of their contribution.
-- If the presiding officer is referred to as “Madam Speaker” or “Chair,” do not assume it is Moses Wetang’ula. Only name the Speaker if explicitly mentioned.
-- If a speaker’s name is clearly mis-transcribed but confidently recognizable, correct it. Otherwise, use “an MP” or omit the name.
+- Do not list silent sponsors or people merely mentioned.
+- If the Speaker is referred to as “Madam Speaker” or “Chair,” do not assume it is Moses Wetang’ula. Only name the Speaker if explicitly stated.
+- If a name is mistranscribed but clearly identifiable, you may correct it — but only if confident. Otherwise, refer to them generally (“an MP”).
+- If no meaningful participants are identifiable, omit this section.
 
 Example:
 - **Hon. Ndindi Nyoro**: Moved the Committee of Supply motion  
@@ -64,15 +74,17 @@ Example:
 
 ## Key Moments
 
-- Highlight any emotionally charged exchanges, sharp critiques, or notable rhetorical moments.
-- These can include heated rebuttals, dramatic questions, or visible tension among members.
-- Describe events factually, without exaggeration.
+- Capture any emotional exchanges, strong rhetorical flourishes, or procedural disputes.
+- Focus on factual, high-impact moments that would be relevant to journalists or civic observers.
+- Do not dramatize or exaggerate.
+- If there were no significant moments, omit this section.
 
 ## Notable Quotes
 
-- Include up to 3 direct quotes from the transcript.
-- Quotes must be meaningful, verifiable from the text, and attributed accurately.
-- If a speaker’s name cannot be confirmed confidently, do not include the quote.
+- Include up to 3 direct quotes if they are verifiable and impactful.
+- Attribute quotes correctly. If the speaker cannot be confidently identified, do not include the quote.
+- Do not include common or generic phrases.
+- If no significant quotes are present, omit this section.
 
 Example:
 - *“Development must never come at the expense of human lives.”* – Hon. Makali Mulu  
@@ -82,11 +94,11 @@ Example:
 
 Important Rules:
 
-- Always maintain a neutral and factual tone.
+- Always maintain a neutral, factual tone.
 - Never fabricate speaker names, quotes, outcomes, or bill statuses.
-- Do not rely on prior memory or knowledge. Only summarize what appears in the transcript.
-- Do not skip required sections. Each section must appear in the order listed.
-- Do not include footnotes, explanations, or meta-comments about the summary.
+- Do not rely on prior memory or world knowledge. Only summarize what is in the transcript.
+- Do not include empty sections, placeholders, or meta-comments.
+- Do not include footnotes or explanations.
 
 Close every summary with the following footer:
 
