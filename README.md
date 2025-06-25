@@ -43,7 +43,7 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
    ```
    This applies migrations in `crates/stream_datastore/migrations`
 
-4. For the UI (optional):
+4. Initialize Prisma client and run seed script:
    ```bash
    cd ui
    npx prisma generate
