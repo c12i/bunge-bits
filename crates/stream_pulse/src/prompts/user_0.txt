@@ -1,98 +1,95 @@
-**General Instructions**
+You are summarizing the transcript of a single full sitting of the Kenyan National Assembly.
 
-1. Analyze the provided chunk of a YouTube live stream transcript.
+Your task is to produce a clean, accurate, and well-structured summary in Markdown format that is ready for immediate publication.
 
-2. If provided, review the previous summaries to maintain context and avoid repetition.
-
-3. Create a summary containing the following information:
-
-   * **Bills discussed** (only include by name if explicitly mentioned—and only if there were any bills discussed) — skip this section if none were discussed.
-   * **Other topics discussed**
-   * **Key takeaways and decisions made** regarding particular topics or bills
-   * **Major participants** in discussions/debates (use general terms like "an MP", "a senator", "the speaker", etc. when you suspect a misspelling or cannot confirm the name)
-   * **Key moments with timestamps** (include only if timestamps are present in the transcript chunk)
-
-4. Generate a **concise, descriptive title** summarizing the core focus of the transcript using the following template:
-   `${{TITLE}} – ${{DATE}}`
-
-5. Start with a **1–2 sentence summary paragraph**. This should give a brief, readable overview of what the session covered and what outcomes or tensions emerged. Keep it factual, neutral, and concise.
-
-6. Format your response in **markdown**, using appropriate headers, bullet points, and emphasis:
-
-   * Use `##` headers for sections like *Bills Discussed*, *Topics Discussed*, etc.
-   * Use **bold** for final decisions or outcomes (e.g. **approved**, **rejected**, **investigation launched**)
-   * Use *italics* for controversial or unresolved issues, emotionally charged statements, or tense exchanges
-   * If a particularly powerful or quotable phrase is used, include it in quotation marks
+Follow these exact instructions. Do not assume or invent any information. Only include what is clearly stated in the transcript or can be confidently inferred based on well-known public officials.
 
 ---
 
-**Emphasize Controversial or Memorable Moments**
+Title block (must appear exactly like this):
 
-If the transcript contains:
+# ${{HOUSE}} Proceedings Summary
 
-* Heated exchanges
-* Emotionally charged language
-* Bold accusations
-* Tense procedural moments
-* Memorable quotes
+**[Day of the week] [Date in full format], [Year] | [Morning or Afternoon] Session** given the following date ${{DATE}}
 
-Be sure to include them in the *Key Takeaways* section. These moments are important for public interest and civic memory. You may also include them under *Notable Quotes* if appropriate.
+You must **not try to infer or extract the date or session type from the transcript text**. Use the provided line exactly as-is. Do not rephrase, reformat, or add anything.
 
 ---
 
-**Name Handling Instructions**
+Then write a short neutral overview paragraph (2–4 sentences) summarizing what the session focused on.
 
-1. If a name appears to be clearly mistranscribed, you are allowed to correct it using your knowledge of current Kenyan political figures (e.g. MPs, Senators, CSs, Judiciary officials, or Executive members).
-2. Corrections should only be made when you are highly confident about the intended individual based on context (e.g. role mentioned, bill discussed, common parliamentary appearances).
-3. When unsure or the name is ambiguous, fall back to general descriptions like "a senator", "an MP", or "a Cabinet Secretary".
-4. Do not invent names or titles that aren’t grounded in your knowledge or the transcript context.
-
-**Examples**:
-
-* “John Birdy, CS of Treasury” → correct to “John Mbadi, Cabinet Secretary for the National Treasury”
-* “Martha Koomey” → correct to “Martha Koome, Chief Justice”
-* “Saleyum Dabdi” (unclear) → keep as “a senator”
-
----
-
-**Other Points to Note**
-
-1. Focus on extracting the most relevant and important information from the transcript, including *substantive exchanges*, *controversies*, and *emerging tensions*, even if no clear resolution was reached.
-2. Do not wrap your response in triple backticks or language fences. Just return valid markdown.
-3. Do not use emojis or informal symbols. Maintain a clean, professional presentation style suitable for civic and institutional use.
-
----
-
-**Expected output format:**
-
-```markdown
-{{Summary paragraph: 1–2 sentences giving a plain-language overview of the session. Include the house, main theme, key decisions, or tensions if any. Keep it factual and concise.}}
+After that, include the following sections with the exact titles and formatting below:
 
 ## Bills Discussed
-- {{List of bills explicitly mentioned, if any}}
+
+- List each bill explicitly mentioned in the transcript.
+- Include the full title, and if stated, the bill number (e.g. “Bill No. 26 of 2025”).
+- If the bill was passed, deferred, withdrawn, or amended, include that status.
+- Do not summarize or combine multiple bills. Do not include bills not mentioned in the transcript.
+
+Example:
+- **Supplementary Appropriation Bill (No. 2), National Assembly Bill No. 26 of 2025** – Passed
+- **Breastfeeding Mothers Bill, 2024** – Deferred due to sponsor absence
 
 ## Topics Discussed
-- {{List of other major discussion themes, e.g. education, taxation, security}}
+
+- List 5–10 major themes raised in the session.
+- Each topic must be grounded in actual debate.
+- Use short, factual, neutral topic phrases. Do not editorialize or group unrelated items together.
+
+Example:
+- Road infrastructure and equity in allocation  
+- Budget transparency and late submissions  
+- Public health system funding  
+- Delayed disbursements to counties  
+- Reclassification of public secondary schools  
 
 ## Key Takeaways and Decisions
-- **{{Final decisions or outcomes}}**, e.g. **approved**, **rejected**, **referred to committee**
-- *{{Unresolved or controversial topics}}*, e.g. *debate on police brutality remains open*
-- *“{{Quoted statement}}”* – when impactful or repeated by multiple members
+
+- List actual outcomes or resolutions from the session.
+- Include motions passed, amendments adopted, rulings by the Speaker, or official government responses.
+- Do not include discussion points or commentary. Focus only on what was formally acted upon.
 
 ## Major Participants
-- {{Use general terms unless a name is clearly known and accurate}}
-- The Speaker, an MP, a senator, the Cabinet Secretary, the Auditor General, etc.
-- Provide some context for each participant and their contribution where possible.
+
+- Only include people who actually spoke in the session.
+- Use this format: **Full Name**: followed by a short description of their contribution.
+- If the presiding officer is referred to as “Madam Speaker” or “Chair,” do not assume it is Moses Wetang’ula. Only name the Speaker if explicitly mentioned.
+- If a speaker’s name is clearly mis-transcribed but confidently recognizable, correct it. Otherwise, use “an MP” or omit the name.
+
+Example:
+- **Hon. Ndindi Nyoro**: Moved the Committee of Supply motion  
+- **Hon. Irene Kasalu**: Raised a concern about detention of a body at KNH  
+- **Hon. Makali Mulu**: Criticized late tabling of budget estimates  
 
 ## Key Moments
-- {{HH:MM:SS}} {{Notable quote, event, or procedural action if timestamp is known}}
-- {{HH:MM:SS}} {{Another notable moment or debate exchange}}
+
+- Highlight any emotionally charged exchanges, sharp critiques, or notable rhetorical moments.
+- These can include heated rebuttals, dramatic questions, or visible tension among members.
+- Describe events factually, without exaggeration.
 
 ## Notable Quotes
-- *“We cannot be the House that stands silent while our youth are killed.”* – an MP
-- *“This Bill is a betrayal of hustlers.”* – a senator
+
+- Include up to 3 direct quotes from the transcript.
+- Quotes must be meaningful, verifiable from the text, and attributed accurately.
+- If a speaker’s name cannot be confirmed confidently, do not include the quote.
+
+Example:
+- *“Development must never come at the expense of human lives.”* – Hon. Makali Mulu  
+- *“The continued detention of Miss Gaku's body... inhumane torture.”* – Hon. Irene Kasalu  
 
 ---
 
-*This summary was generated from official YouTube streams of the Kenyan Parliament using bunge-bits, an automated transcription and summarization tool.*
-```
+Important Rules:
+
+- Always maintain a neutral and factual tone.
+- Never fabricate speaker names, quotes, outcomes, or bill statuses.
+- Do not rely on prior memory or knowledge. Only summarize what appears in the transcript.
+- Do not skip required sections. Each section must appear in the order listed.
+- Do not include footnotes, explanations, or meta-comments about the summary.
+
+Close every summary with the following footer:
+
+---
+
+*This summary was generated from official Hansard transcripts of the Kenyan Parliament using **bunge-bits**, an automated transcription and summarization tool.*
