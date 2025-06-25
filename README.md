@@ -32,6 +32,29 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
 
 ## Development Setup
 
+### Database Setup
+
+1. Ensure you have PostgreSQL running
+2. Install SQLx CLI:
+   ```bash
+   cargo install sqlx-cli
+   ```
+3. Run migrations from project root:
+   ```bash
+   cd crates/stream_datastore
+   sqlx migrate run
+   ```
+   This applies migrations in `crates/stream_datastore/migrations`
+
+4. Initialize Prisma client and run seed script:
+   ```bash
+   cd ui
+   npx prisma generate
+   pnpm seed
+   ```
+
+### Component Setup
+
 - [`stream_pulse`](./crates/stream_pulse/README.md#development-setup)
 - [`ui`](./ui/README.md)
 
