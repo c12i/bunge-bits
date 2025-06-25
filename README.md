@@ -29,6 +29,31 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
 
 ## Development Setup
 
+### Database Setup
+
+1. Ensure you have PostgreSQL running
+2. Install SQLx CLI:
+   ```bash
+   cargo install sqlx-cli
+   ```
+3. Run migrations from project root:
+   ```bash
+   sqlx migrate run
+   ```
+   This applies:
+   - Initial streams table creation
+   - Full-text search setup
+   - House generated column addition
+
+4. For the UI (optional):
+   ```bash
+   cd ui
+   npx prisma generate
+   pnpm seed
+   ```
+
+### Component Setup
+
 - [`stream_pulse`](./crates/stream_pulse/README.md#development-setup)
 - [`ui`](./ui/README.md)
 
