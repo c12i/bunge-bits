@@ -326,9 +326,6 @@ impl YtDlp {
     fn run_yt_dlp_once(&self, args: &[&str]) -> Result<(), YtDlpError> {
         let mut cmd = std::process::Command::new(&self.binary_path);
 
-        // Force output to be in English
-        cmd.env("LANG", "en_US.UTF-8");
-
         if let Some(ref cookies) = self.cookies_path {
             if !cookies.exists() {
                 return Err(YtDlpError::InvalidPath(format!(
