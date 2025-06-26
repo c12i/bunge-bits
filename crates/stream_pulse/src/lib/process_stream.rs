@@ -1,3 +1,4 @@
+use another_tiktoken_rs::cl100k_base;
 use anyhow::{bail, Context};
 use itertools::Itertools;
 use openai_dive::v1::{
@@ -15,6 +16,7 @@ use openai_dive::v1::{
     },
 };
 use rayon::prelude::*;
+use regex::Regex;
 use std::{
     fs::{create_dir_all, remove_dir_all, OpenOptions},
     io::Write,
@@ -24,7 +26,7 @@ use std::{
 use stream_datastore::{DataStore, Stream};
 use ytdlp_bindings::{AudioProcessor, YtDlp};
 
-use crate::{extract_json_from_script, parse_streams};
+use crate::{extract_json_from_script, parse_streams, summary::summarize_linear};
 
 static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 static YTDLP: LazyLock<YtDlp> = LazyLock::new(|| {
@@ -39,6 +41,8 @@ static OPENAI: LazyLock<OpenAiClient> = LazyLock::new(openai_dive::v1::api::Clie
 const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChannel/streams";
 // Work directory - basically where all artifacts will be stored
 const WORKDIR: &str = "/var/tmp/bunge-bits";
+const TRANSCRIPT_CHUNK_DELIMITER: &str = "----END_OF_CHUNK----";
+const GPT4O_CONTEXT_LIMIT: usize = 128_000;
 
 #[tracing::instrument]
 pub async fn fetch_and_process_streams(max_streams: usize) -> anyhow::Result<()> {
@@ -155,7 +159,8 @@ async fn transcribe_streams(streams: &[Stream], openai: &OpenAiClient) -> anyhow
         for entry in entries {
             match transcribe_audio(entry.path(), openai).await {
                 Ok(transcription) => {
-                    writeln!(transcript_file, "{}", transcription)?;
+                    write!(transcript_file, "{}", transcription)?;
+                    writeln!(transcript_file, "{}", TRANSCRIPT_CHUNK_DELIMITER)?;
                 }
                 Err(err) => {
                     tracing::error!(error = ?err, "Skipping failed chunk {}", entry.path().display());
@@ -222,9 +227,52 @@ async fn summarize_streams(
         let transcript = std::fs::read_to_string(&transcript_path)
             .with_context(|| format!("Failed to read transcript at {}", transcript_path))?;
 
-        let result = summarize_stream(stream, openai.as_ref(), transcript)
+        let re_number_chain = Regex::new(r"(?m)(\d+(?:[.\-]\d+){5,})")?;
+        let transcript = re_number_chain.replace_all(&transcript, "").into_owned();
+
+        let re_repeated_words = Regex::new(r"\b(\w+)(?:\s+\1){4,}\b")?;
+        let transcript = re_repeated_words
+            .replace_all(&transcript, "$1")
+            .into_owned();
+
+        let token_count = count_tokens(&transcript)?;
+
+        let result = if token_count <= GPT4O_CONTEXT_LIMIT {
+            // full transcript fits – summarize directly
+            summarize_stream(stream, openai.as_ref(), transcript)
+                .await
+                .with_context(|| format!("Failed to summarize full stream {}", stream.video_id))?
+        } else {
+            // transcript is too long – chunk and summarize
+            summarize_linear(
+                &transcript,
+                TRANSCRIPT_CHUNK_DELIMITER,
+                |chunk, context| {
+                    let openai = Arc::clone(&openai);
+                    Box::pin(async move {
+                        summarize_chunk(chunk, context, &openai)
+                            .await
+                            .map_err(|e| e.into())
+                    })
+                },
+                |summaries| {
+                    let stream = stream.clone();
+                    let openai = Arc::clone(&openai);
+                    Box::pin(async move {
+                        combine_summaries(summaries, &stream, &openai)
+                            .await
+                            .map_err(|e| e.into())
+                    })
+                },
+            )
             .await
-            .with_context(|| format!("Failed to summarize stream {}", stream.video_id))?;
+            .with_context(|| {
+                format!(
+                    "Chunked summarization failed for stream {}",
+                    stream.video_id
+                )
+            })?
+        };
 
         // TODO: Add guard to detect malformed or incomplete LLM output
         stream.summary_md = Some(result);
@@ -312,6 +360,197 @@ async fn summarize_stream(
     }
 }
 
+#[tracing::instrument(skip(chunk, context, openai))]
+async fn summarize_chunk(
+    chunk: String,
+    context: Option<Arc<String>>,
+    openai: &OpenAiClient,
+) -> anyhow::Result<String> {
+    let user_prompt = context
+    .map(|ctx| {
+        format!(
+            r#"
+You are summarizing a *portion* of a single full sitting of the Kenyan National Assembly.
+
+This is **not** the complete transcript. Your task is to extract relevant information that will later be combined with summaries from other chunks to produce a full, structured summary. You must follow these exact instructions and **not attempt to format the final output** yourself.
+
+---
+
+Optional Context (may help interpret this chunk):
+
+{}
+
+Use it only to improve understanding of ambiguous or partial content in the chunk. Do not hallucinate based on context alone.
+
+---
+
+Transcript Chunk:
+{}
+
+{}
+"#,
+            ctx,
+            chunk,
+            include_str!("../prompts/user_1.txt")
+        )
+    })
+    .unwrap_or_else(|| {
+        format!(
+            r#"
+You are summarizing a *portion* of a single full sitting of the Kenyan National Assembly.
+
+This is **not** the complete transcript. Your task is to extract relevant information that will later be combined with summaries from other chunks to produce a full, structured summary. You must follow these exact instructions and **not attempt to format the final output** yourself.
+
+---
+
+Transcript Chunk:
+{}
+
+{}
+"#,
+            chunk,
+            include_str!("../prompts/user_1.txt")
+        )
+    });
+
+    // TODO: Add web-search capability
+    let parameters = ChatCompletionParametersBuilder::default()
+        .model(FlagshipModel::Gpt4O.to_string())
+        .messages(vec![
+            ChatMessage::System {
+                content: ChatMessageContent::Text(include_str!("../prompts/system_0.txt").into()),
+                name: None,
+            },
+            ChatMessage::User {
+                content: ChatMessageContent::Text(user_prompt),
+                name: None,
+            },
+        ])
+        .response_format(ChatCompletionResponseFormat::Text)
+        .build()?;
+
+    let mut attempt = 0;
+    let max_attempts = 5;
+
+    loop {
+        tracing::info!(attempt, "Summarizing chunk");
+
+        match openai.chat().create(parameters.clone()).await {
+            Ok(response) => break chat_completions_text_from_response(response),
+            Err(err) => {
+                attempt += 1;
+                let err_str = format!("{:?}", err);
+                // In case of a 429 response, OpenAI will recommend a wait time
+                // we try to use the recommended wait time here, otherwise the fallback is used
+                let wait_ms = extract_wait_time_ms_from_error(&err_str).unwrap_or_else(|| {
+                    let fallback = 2_u64.pow(attempt) * 1000;
+                    tracing::warn!(attempt, "No wait time found, using fallback {}ms", fallback);
+                    fallback
+                });
+
+                if attempt >= max_attempts {
+                    tracing::error!(error = ?err, "Failed after {} attempts", attempt);
+                    return Err(err.into());
+                }
+
+                tracing::warn!(
+                    error = ?err,
+                    attempt,
+                    wait_ms,
+                    "Rate limit hit or other error. Retrying after {}ms (attempt {}/{})",
+                    wait_ms,
+                    attempt,
+                    max_attempts
+                );
+
+                tokio::time::sleep(std::time::Duration::from_millis(wait_ms)).await;
+            }
+        }
+    }
+}
+
+#[tracing::instrument(skip(stream, summaries, openai))]
+async fn combine_summaries(
+    summaries: Vec<String>,
+    stream: &Stream,
+    openai: &OpenAiClient,
+) -> anyhow::Result<String> {
+    let summaries = summaries.join("\n");
+
+    let prompt = format!(
+        r#"
+{}
+
+Summaries:
+{}
+"#,
+        include_str!("../prompts/user_2.txt")
+            .replace("${{TITLE}}", &stream.title)
+            .replace(
+                "${{DATE}}",
+                &stream
+                    .timestamp_from_time_ago()
+                    .map(|v| v.to_string())
+                    .unwrap_or_else(|| "${{DATE: inferred from summary}}".to_string()),
+            ),
+        summaries
+    );
+
+    // TODO: Add web-search capability
+    let parameters = ChatCompletionParametersBuilder::default()
+        .model(FlagshipModel::Gpt4O.to_string())
+        .messages(vec![
+            ChatMessage::System {
+                content: ChatMessageContent::Text(include_str!("../prompts/system_0.txt").into()),
+                name: None,
+            },
+            ChatMessage::User {
+                content: ChatMessageContent::Text(prompt),
+                name: None,
+            },
+        ])
+        .response_format(ChatCompletionResponseFormat::Text)
+        .build()?;
+
+    let mut attempt = 0;
+    let max_attempts = 5;
+
+    loop {
+        tracing::info!(attempt, "Combining summaries");
+
+        match openai.chat().create(parameters.clone()).await {
+            Ok(response) => break chat_completions_text_from_response(response),
+            Err(err) => {
+                attempt += 1;
+
+                let err_str = format!("{:?}", err);
+                let wait_ms = extract_wait_time_ms_from_error(&err_str).unwrap_or_else(|| {
+                    let fallback = 2_u64.pow(attempt) * 1000;
+                    tracing::warn!(attempt, "No wait time found, using fallback {}ms", fallback);
+                    fallback
+                });
+
+                if attempt >= max_attempts {
+                    tracing::error!(error = ?err, "combine_summaries failed after {} attempts", attempt);
+                    return Err(err.into());
+                }
+
+                tracing::warn!(
+                    error = ?err,
+                    wait_ms,
+                    attempt,
+                    "Retrying combine_summaries after {}ms (attempt {}/{})",
+                    wait_ms,
+                    attempt,
+                    max_attempts
+                );
+
+                tokio::time::sleep(std::time::Duration::from_millis(wait_ms)).await;
+            }
+        }
+    }
+}
+
 #[tracing::instrument(skip(response))]
 pub fn chat_completions_text_from_response(
     response: ChatCompletionResponse,
@@ -372,6 +611,11 @@ pub async fn sort_and_filter_existing_streams(
         .collect::<Vec<_>>();
 
     Ok(result)
+}
+
+fn count_tokens(text: &str) -> anyhow::Result<usize> {
+    let bpe = cl100k_base()?;
+    Ok(bpe.encode_with_special_tokens(text).len())
 }
 
 /// Try to extract wait time from potential 429 error response

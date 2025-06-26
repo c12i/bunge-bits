@@ -1,6 +1,7 @@
 mod error;
 mod parser;
 mod process_stream;
+pub mod summary;
 pub mod tracing;
 pub mod types;
 
