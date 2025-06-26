@@ -21,49 +21,30 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
 - [x] `yt-dlp` bindings: Bindings to interact with the yt-dlp cli as well as some utilities to interact with video and vtt data
 - [x] `ffmpeg` bindings: Bindings to complement the Ytdlp bindings for the purpose of processing audio
 - [x] `stream_pulse_cron`: A cron job that periodically fetches and processes streams
-- [x] `stream_digest`: Functions that make it possible to efficiently process transcripts in chunks
-- [x] LLMs: A service that interacts with OpenAI's Whisper and ChatGPT 4o to handle transcribing and summarizing the downloaded audio
+- [x] ~`stream_digest`: Functions that make it possible to efficiently process transcripts in chunks~ **DEPRECIATED** [#29](https://github.com/c12i/bunge-bits/issues29)
 - [x] Manual publish flag – `is_published` field added to each stream for editorial control. Yes it sucks, but it's necessary for now since LLMs don't seem to get everything 100% right. Only a temporary step for now though.
 - [x] Web App: The end user interface that will display the summarized content [#3](https://github.com/c12i/bunge-bits/issues/3)
-- [ ] Email Newsletter – Periodic delivery of new summaries to subscribers
+
+## Deferred
+
+- [ ] Email Newsletter – Periodic delivery of new summaries to subscribers - Using RSS Feed for now
 
 ## Development Setup
-
-### Database Setup
-
-1. Ensure you have PostgreSQL running
-2. Install SQLx CLI:
-   ```bash
-   cargo install sqlx-cli
-   ```
-3. Run migrations from project root:
-   ```bash
-   sqlx migrate run
-   ```
-   This applies:
-   - Initial streams table creation
-   - Full-text search setup
-   - House generated column addition
-
-4. For the UI (optional):
-   ```bash
-   cd ui
-   npx prisma generate
-   pnpm seed
-   ```
 
 ### Component Setup
 
 - [`stream_pulse`](./crates/stream_pulse/README.md#development-setup)
+- [`stream_datastore`](./crates/stream_datastore/README.md)
 - [`ui`](./ui/README.md)
 
 ## Contribution
 
 See the [contribution guideline](./CONTRIBUTING.md).
 
-## Blog Posts
+## Related Posts
 
 - [Building bunge-bits, an AI-Powered Summary Pipeline for the Parliament of Kenya](https://collinsmuriuki.xyz/building-bunge-bits/)
+- [Show HN: A Tool to Summarize Kenya's Parliament with Rust, Whisper, and LLMs](https://news.ycombinator.com/item?id=44348649)
 
 ## Support the Project
 

@@ -1,7 +1,6 @@
 [workspace]
 members = [
   "crates/stream_datastore",
-  "crates/stream_digest",
   "crates/stream_pulse",
   "crates/ytdlp_bindings",
 ]

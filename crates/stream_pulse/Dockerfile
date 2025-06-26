@@ -8,7 +8,6 @@ FROM chef AS planner
 COPY Cargo.toml Cargo.lock ./
 COPY crates/stream_pulse/Cargo.toml crates/stream_pulse/Cargo.toml
 COPY crates/stream_datastore/Cargo.toml crates/stream_datastore/Cargo.toml
-COPY crates/stream_digest/Cargo.toml crates/stream_digest/Cargo.toml
 COPY crates/ytdlp_bindings/Cargo.toml crates/ytdlp_bindings/Cargo.toml
 # generate reproducible build plan
 RUN cargo chef prepare --recipe-path recipe.json

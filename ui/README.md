@@ -31,21 +31,28 @@ Create a `.env` from the `.env.example` template
 cp .env.example .env
 ```
 
-### Setting up the database
+### Database Setup
 
-Bunge Bits schema is quite fragmented at the moment. However, you can follow the following steps to
-recreate the database in any environment
+1. Ensure you have PostgreSQL running
+2. Install SQLx CLI:
+   ```bash
+   cargo install sqlx-cli
+   ```
+3. Run migrations from project root:
 
-1. Run the [init query](../crates/stream_datastore/src/store.rs#L25-L34) from `stream_data_store`.
-2. Run all the follow up migrations in [`/sql`](../sql)
+   ```bash
+   cd crates/stream_datastore
+   sqlx migrate run
+   ```
 
-With this, you should have the current `bunge_bits` database schema. Update the `DATABASE_URL` env var with yours.
+   This applies migrations in `crates/stream_datastore/migrations`
 
-### Generate Prisma Client
-
-```bash
-npx prisma generate
-```
+4. Initialize Prisma client and run seed script:
+   ```bash
+   cd ui
+   npx prisma generate
+   pnpm seed
+   ```
 
 ### Start the Development Server
 
