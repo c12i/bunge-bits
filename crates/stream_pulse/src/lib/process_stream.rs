@@ -1,3 +1,4 @@
+use another_tiktoken_rs::cl100k_base;
 use anyhow::{bail, Context};
 use itertools::Itertools;
 use openai_dive::v1::{
@@ -15,6 +16,7 @@ use openai_dive::v1::{
     },
 };
 use rayon::prelude::*;
+use regex::Regex;
 use std::{
     fs::{create_dir_all, remove_dir_all, OpenOptions},
     io::Write,
@@ -24,7 +26,7 @@ use std::{
 use stream_datastore::{DataStore, Stream};
 use ytdlp_bindings::{AudioProcessor, YtDlp};
 
-use crate::{extract_json_from_script, parse_streams};
+use crate::{extract_json_from_script, parse_streams, summary::summarize_linear};
 
 static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 static YTDLP: LazyLock<YtDlp> = LazyLock::new(|| {
@@ -39,7 +41,24 @@ static OPENAI: LazyLock<OpenAiClient> = LazyLock::new(openai_dive::v1::api::Clie
 const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChannel/streams";
 // Work directory - basically where all artifacts will be stored
 const WORKDIR: &str = "/var/tmp/bunge-bits";
+const TRANSCRIPT_CHUNK_DELIMITER: &str = "----END_OF_CHUNK----";
+// leave ~18k tokens for system/user prompts and model response
+const GPT4O_CONTEXT_LIMIT: usize = 128_000 - 18_000;
 
+// Repeated number chains like 1.0-2-1.0-1-1-...
+pub static RE_NUMBER_CHAIN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)(\d+(?:[.\-]\d+){5,})").unwrap());
+// Numeric-only garbage lines like "1.0-1-1-1-1-1-1"
+pub static RE_NUMERIC_LINE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)^[\d.\-, ]{10,}$").unwrap());
+
+/// Fetches and processes a batch of Kenyan parliamentary video streams.
+///
+/// This function coordinates the end-to-end pipeline for downloading recent streams,
+/// extracting transcripts, cleaning noisy content, summarizing them using OpenAI's GPT-4o,
+/// and storing the final Markdown summaries.
+///
+/// It limits processing to the `max_streams` most recent unprocessed videos.
 #[tracing::instrument]
 pub async fn fetch_and_process_streams(max_streams: usize) -> anyhow::Result<()> {
     let client = &CLIENT;
@@ -51,7 +70,14 @@ pub async fn fetch_and_process_streams(max_streams: usize) -> anyhow::Result<()>
         .await
         .context("Failed to initialize database")?;
 
-    let yt_html_document = client.get(YOUTUBE_STREAM_URL).send().await?.text().await?;
+    let yt_html_document = client
+        .get(YOUTUBE_STREAM_URL)
+        .header("Accept-Language", "en-US,en;q=0.9")
+        .send()
+        .await?
+        .text()
+        .await?;
+
     match extract_json_from_script(&yt_html_document) {
         Ok(json) => {
             let streams = parse_streams(&json)?;
@@ -74,8 +100,6 @@ pub async fn fetch_and_process_streams(max_streams: usize) -> anyhow::Result<()>
             transcribe_streams(&streams, openai).await?;
 
             summarize_streams(&mut streams, Arc::new(OPENAI.clone()), &db).await?;
-
-            // TODO: Generate timestamp_md
         }
         Err(e) => {
             tracing::error!(error = ?e,  "Error extracing ytInitialData from the html document");
@@ -155,7 +179,8 @@ async fn transcribe_streams(streams: &[Stream], openai: &OpenAiClient) -> anyhow
         for entry in entries {
             match transcribe_audio(entry.path(), openai).await {
                 Ok(transcription) => {
-                    writeln!(transcript_file, "{}", transcription)?;
+                    write!(transcript_file, "{}", transcription)?;
+                    writeln!(transcript_file, "{}", TRANSCRIPT_CHUNK_DELIMITER)?;
                 }
                 Err(err) => {
                     tracing::error!(error = ?err, "Skipping failed chunk {}", entry.path().display());
@@ -221,10 +246,49 @@ async fn summarize_streams(
         let transcript_path = format!("{WORKDIR}/{}.txt", stream.video_id);
         let transcript = std::fs::read_to_string(&transcript_path)
             .with_context(|| format!("Failed to read transcript at {}", transcript_path))?;
+        let transcript = clean_transcript(transcript);
 
-        let result = summarize_stream(stream, openai.as_ref(), transcript)
+        let token_count = count_tokens(&transcript)?;
+
+        tracing::info!(
+            "Stream {}: {} tokens — {}",
+            stream.video_id,
+            token_count,
+            if token_count <= GPT4O_CONTEXT_LIMIT {
+                "summarized fully"
+            } else {
+                "chunked"
+            }
+        );
+
+        let result = if token_count <= GPT4O_CONTEXT_LIMIT {
+            // full transcript fits –> summarize directly
+            summarize_stream(stream, openai.as_ref(), transcript)
+                .await
+                .with_context(|| format!("Failed to summarize full stream {}", stream.video_id))?
+        } else {
+            // transcript is too long –> chunk and summarize
+            summarize_linear(
+                &transcript,
+                TRANSCRIPT_CHUNK_DELIMITER,
+                |chunk, context| {
+                    let openai = Arc::clone(&openai);
+                    Box::pin(async move { summarize_chunk(chunk, context, &openai).await })
+                },
+                |summaries| {
+                    let stream = stream.clone();
+                    let openai = Arc::clone(&openai);
+                    Box::pin(async move { combine_summaries(summaries, &stream, &openai).await })
+                },
+            )
             .await
-            .with_context(|| format!("Failed to summarize stream {}", stream.video_id))?;
+            .with_context(|| {
+                format!(
+                    "Chunked summarization failed for stream {}",
+                    stream.video_id
+                )
+            })?
+        };
 
         // TODO: Add guard to detect malformed or incomplete LLM output
         stream.summary_md = Some(result);
@@ -233,6 +297,22 @@ async fn summarize_streams(
     db.bulk_insert_streams(streams).await?;
 
     Ok(())
+}
+
+/// Cleans up a raw transcript string
+pub fn clean_transcript(text: String) -> String {
+    let cleaned = text.to_string();
+
+    let cleaned = RE_NUMBER_CHAIN.replace_all(&cleaned, "").into_owned();
+    let cleaned = RE_NUMERIC_LINE.replace_all(&cleaned, "").into_owned();
+
+    let cleaned = cleaned.replace("\r\n", "\n").replace("\t", " ");
+    let cleaned = Regex::new(r"[ ]{2,}")
+        .unwrap()
+        .replace_all(&cleaned, " ")
+        .into_owned();
+
+    cleaned.trim().to_string()
 }
 
 #[tracing::instrument(skip(stream, openai, transcript))]
@@ -312,6 +392,197 @@ async fn summarize_stream(
     }
 }
 
+#[tracing::instrument(skip(chunk, context, openai))]
+async fn summarize_chunk(
+    chunk: String,
+    context: Option<Arc<String>>,
+    openai: &OpenAiClient,
+) -> anyhow::Result<String> {
+    let user_prompt = context
+    .map(|ctx| {
+        format!(
+            r#"
+You are summarizing a *portion* of a single full sitting of the Kenyan National Assembly.
+
+This is **not** the complete transcript. Your task is to extract relevant information that will later be combined with summaries from other chunks to produce a full, structured summary. You must follow these exact instructions and **not attempt to format the final output** yourself.
+
+---
+
+Optional Context (may help interpret this chunk):
+
+{}
+
+Use it only to improve understanding of ambiguous or partial content in the chunk. Do not hallucinate based on context alone.
+
+---
+
+Transcript Chunk:
+{}
+
+{}
+"#,
+            ctx,
+            chunk,
+            include_str!("../prompts/user_1.txt")
+        )
+    })
+    .unwrap_or_else(|| {
+        format!(
+            r#"
+You are summarizing a *portion* of a single full sitting of the Kenyan National Assembly.
+
+This is **not** the complete transcript. Your task is to extract relevant information that will later be combined with summaries from other chunks to produce a full, structured summary. You must follow these exact instructions and **not attempt to format the final output** yourself.
+
+---
+
+Transcript Chunk:
+{}
+
+{}
+"#,
+            chunk,
+            include_str!("../prompts/user_1.txt")
+        )
+    });
+
+    // TODO: Add web-search capability
+    let parameters = ChatCompletionParametersBuilder::default()
+        .model(FlagshipModel::Gpt4O.to_string())
+        .messages(vec![
+            ChatMessage::System {
+                content: ChatMessageContent::Text(include_str!("../prompts/system_0.txt").into()),
+                name: None,
+            },
+            ChatMessage::User {
+                content: ChatMessageContent::Text(user_prompt),
+                name: None,
+            },
+        ])
+        .response_format(ChatCompletionResponseFormat::Text)
+        .build()?;
+
+    let mut attempt = 0;
+    let max_attempts = 5;
+
+    loop {
+        tracing::info!(attempt, "Summarizing chunk");
+
+        match openai.chat().create(parameters.clone()).await {
+            Ok(response) => break chat_completions_text_from_response(response),
+            Err(err) => {
+                attempt += 1;
+                let err_str = format!("{:?}", err);
+                // In case of a 429 response, OpenAI will recommend a wait time
+                // we try to use the recommended wait time here, otherwise the fallback is used
+                let wait_ms = extract_wait_time_ms_from_error(&err_str).unwrap_or_else(|| {
+                    let fallback = 2_u64.pow(attempt) * 1000;
+                    tracing::warn!(attempt, "No wait time found, using fallback {}ms", fallback);
+                    fallback
+                });
+
+                if attempt >= max_attempts {
+                    tracing::error!(error = ?err, "Failed after {} attempts", attempt);
+                    return Err(err.into());
+                }
+
+                tracing::warn!(
+                    error = ?err,
+                    attempt,
+                    wait_ms,
+                    "Rate limit hit or other error. Retrying after {}ms (attempt {}/{})",
+                    wait_ms,
+                    attempt,
+                    max_attempts
+                );
+
+                tokio::time::sleep(std::time::Duration::from_millis(wait_ms)).await;
+            }
+        }
+    }
+}
+
+#[tracing::instrument(skip(stream, summaries, openai))]
+async fn combine_summaries(
+    summaries: Vec<String>,
+    stream: &Stream,
+    openai: &OpenAiClient,
+) -> anyhow::Result<String> {
+    let summaries = summaries.join("\n");
+
+    let prompt = format!(
+        r#"
+{}
+
+Summaries:
+{}
+"#,
+        include_str!("../prompts/user_2.txt")
+            .replace("${{TITLE}}", &stream.title)
+            .replace(
+                "${{DATE}}",
+                &stream
+                    .timestamp_from_time_ago()
+                    .map(|v| v.to_string())
+                    .unwrap_or_else(|| "${{DATE: inferred from summary}}".to_string()),
+            ),
+        summaries
+    );
+
+    // TODO: Add web-search capability
+    let parameters = ChatCompletionParametersBuilder::default()
+        .model(FlagshipModel::Gpt4O.to_string())
+        .messages(vec![
+            ChatMessage::System {
+                content: ChatMessageContent::Text(include_str!("../prompts/system_0.txt").into()),
+                name: None,
+            },
+            ChatMessage::User {
+                content: ChatMessageContent::Text(prompt),
+                name: None,
+            },
+        ])
+        .response_format(ChatCompletionResponseFormat::Text)
+        .build()?;
+
+    let mut attempt = 0;
+    let max_attempts = 5;
+
+    loop {
+        tracing::info!(attempt, "Combining summaries");
+
+        match openai.chat().create(parameters.clone()).await {
+            Ok(response) => break chat_completions_text_from_response(response),
+            Err(err) => {
+                attempt += 1;
+
+                let err_str = format!("{:?}", err);
+                let wait_ms = extract_wait_time_ms_from_error(&err_str).unwrap_or_else(|| {
+                    let fallback = 2_u64.pow(attempt) * 1000;
+                    tracing::warn!(attempt, "No wait time found, using fallback {}ms", fallback);
+                    fallback
+                });
+
+                if attempt >= max_attempts {
+                    tracing::error!(error = ?err, "combine_summaries failed after {} attempts", attempt);
+                    return Err(err.into());
+                }
+
+                tracing::warn!(
+                    error = ?err,
+                    wait_ms,
+                    attempt,
+                    "Retrying combine_summaries after {}ms (attempt {}/{})",
+                    wait_ms,
+                    attempt,
+                    max_attempts
+                );
+
+                tokio::time::sleep(std::time::Duration::from_millis(wait_ms)).await;
+            }
+        }
+    }
+}
+
 #[tracing::instrument(skip(response))]
 pub fn chat_completions_text_from_response(
     response: ChatCompletionResponse,
@@ -374,6 +645,11 @@ pub async fn sort_and_filter_existing_streams(
     Ok(result)
 }
 
+fn count_tokens(text: &str) -> anyhow::Result<usize> {
+    let bpe = cl100k_base()?;
+    Ok(bpe.encode_with_special_tokens(text).len())
+}
+
 /// Try to extract wait time from potential 429 error response
 fn extract_wait_time_ms_from_error(err_msg: &str) -> Option<u64> {
     let marker = "Please try again in ";
@@ -397,5 +673,33 @@ pub fn cleanup_audio_dir() {
         } else {
             tracing::info!(path = ?audio_path, "Cleaned up audio directory");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn removes_number_chains() {
+        let input = "1.0-2-1.0-1-1-1-1-1-1.0-1\nSome actual content.";
+        let output = clean_transcript(input.to_string());
+        assert!(!output.contains("1.0-2-1.0"));
+        assert!(output.contains("Some actual content"));
+    }
+
+    #[test]
+    fn removes_numeric_lines() {
+        let input = "123.0-1-1-1-1\nNormal line";
+        let output = clean_transcript(input.to_string());
+        assert!(output.contains("Normal line"));
+        assert!(!output.contains("123.0"));
+    }
+
+    #[test]
+    fn normalizes_whitespace() {
+        let input = "Too    many     spaces.";
+        let output = clean_transcript(input.to_string());
+        assert_eq!(output, "Too many spaces.");
     }
 }
