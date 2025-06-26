@@ -243,6 +243,17 @@ async fn summarize_streams(
 
         let token_count = count_tokens(&transcript)?;
 
+        tracing::info!(
+            "Stream {}: {} tokens — {}",
+            stream.video_id,
+            token_count,
+            if token_count <= GPT4O_CONTEXT_LIMIT {
+                "summarized fully"
+            } else {
+                "chunked"
+            }
+        );
+
         let result = if token_count <= GPT4O_CONTEXT_LIMIT {
             // full transcript fits –> summarize directly
             summarize_stream(stream, openai.as_ref(), transcript)
