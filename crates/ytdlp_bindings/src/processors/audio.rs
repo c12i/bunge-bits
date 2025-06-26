@@ -16,6 +16,7 @@ pub trait AudioProcessor {
     /// * `file_input_path` - The path to the downloaded audio file.
     /// * `segment_time_s` - The duration of segments to split the audio file by in seconds
     /// * `out_template` - Path/ template string of the split audio files
+    /// * `extra_args` - Additional optional args
     ///
     /// # Errors
     ///
@@ -25,6 +26,7 @@ pub trait AudioProcessor {
         file_input_path: impl AsRef<Path>,
         segment_time_s: u16,
         out_template: impl AsRef<Path>,
+        extra_args: Option<&[&str]>,
     ) -> Result<(), YtDlpError>;
 }
 
@@ -33,22 +35,25 @@ impl AudioProcessor for YtDlp {
         &self,
         file_input_path: impl AsRef<Path>,
         segment_time_s: u16,
-        output_template: impl AsRef<Path>,
+        out_template: impl AsRef<Path>,
+        extra_args: Option<&[&str]>,
     ) -> Result<(), YtDlpError> {
         let input_str = file_input_path.as_ref().to_str().ok_or_else(|| {
             YtDlpError::InvalidPath(file_input_path.as_ref().display().to_string())
         })?;
-        let output_str = output_template.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
-        })?;
+        let output_str = out_template
+            .as_ref()
+            .to_str()
+            .ok_or_else(|| YtDlpError::InvalidPath(out_template.as_ref().display().to_string()))?;
+        let segment_time_s = segment_time_s.to_string();
 
-        self.run_ffmpeg(&[
+        let mut args = vec![
             "-i",
             input_str,
             "-f",
             "segment",
             "-segment_time",
-            &segment_time_s.to_string(),
+            &segment_time_s,
             "-ac",
             "1",
             "-b:a",
@@ -57,7 +62,14 @@ impl AudioProcessor for YtDlp {
             "16000",
             "-c:a",
             "libmp3lame",
-            output_str,
-        ])
+        ];
+
+        if let Some(extra) = extra_args {
+            args.extend_from_slice(extra);
+        }
+
+        args.push(output_str);
+
+        self.run_ffmpeg(&args)
     }
 }

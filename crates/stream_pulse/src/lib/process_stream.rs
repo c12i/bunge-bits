@@ -126,6 +126,7 @@ fn handle_stream_audio(
             &audio_mp3_path,
             900,
             chunked_audio_path.join(format!("{}_%03d.mp3", stream.video_id)),
+            Some(&["-filter:a", "atempo=2.0"]),
         )?;
     } else {
         tracing::debug!("Chunks already exist at {:?}", chunked_audio_path);
