@@ -81,7 +81,7 @@ pub async fn fetch_and_process_streams(max_streams: usize) -> anyhow::Result<()>
     match extract_json_from_script(&yt_html_document) {
         Ok(json) => {
             let streams = parse_streams(&json)?;
-            tracing::info!(count = streams.len(), streams = ?streams, "Processing streams");
+            tracing::info!(count = streams.len(), "Processing streams");
 
             // This is where initially downloaded audio by yt-dlp is saved
             let audio_download_path = PathBuf::from(format!("{WORKDIR}/audio"));
