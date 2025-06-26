@@ -79,8 +79,6 @@ pub async fn fetch_and_process_streams(max_streams: usize) -> anyhow::Result<()>
             transcribe_streams(&streams, openai).await?;
 
             summarize_streams(&mut streams, Arc::new(OPENAI.clone()), &db).await?;
-
-            // TODO: Generate timestamp_md
         }
         Err(e) => {
             tracing::error!(error = ?e,  "Error extracing ytInitialData from the html document");
