@@ -37,8 +37,8 @@ tracing-subscriber = { version = "0.3", features = [
 ] }
 tracing-bunyan-formatter = "0.3"
 dotenvy = "0.15.7"
-sentry = "0.40.0"
-sentry-tracing = "0.40.0"
+sentry = "0.41.0"
+sentry-tracing = "0.41.0"
 another-tiktoken-rs = { version = "0.1.2", features = ["async-openai"] }
 
 [dev-dependencies]

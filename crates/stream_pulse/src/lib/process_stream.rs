@@ -42,7 +42,8 @@ const YOUTUBE_STREAM_URL: &str = "https://www.youtube.com/@ParliamentofKenyaChan
 // Work directory - basically where all artifacts will be stored
 const WORKDIR: &str = "/var/tmp/bunge-bits";
 const TRANSCRIPT_CHUNK_DELIMITER: &str = "----END_OF_CHUNK----";
-const GPT4O_CONTEXT_LIMIT: usize = 128_000;
+// leave ~18k tokens for system/user prompts and model response
+const GPT4O_CONTEXT_LIMIT: usize = 128_000 - 18_000;
 
 #[tracing::instrument]
 pub async fn fetch_and_process_streams(max_streams: usize) -> anyhow::Result<()> {
