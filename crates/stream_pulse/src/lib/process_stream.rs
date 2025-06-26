@@ -273,20 +273,12 @@ async fn summarize_streams(
                 TRANSCRIPT_CHUNK_DELIMITER,
                 |chunk, context| {
                     let openai = Arc::clone(&openai);
-                    Box::pin(async move {
-                        summarize_chunk(chunk, context, &openai)
-                            .await
-                            .map_err(|e| e.into())
-                    })
+                    Box::pin(async move { summarize_chunk(chunk, context, &openai).await })
                 },
                 |summaries| {
                     let stream = stream.clone();
                     let openai = Arc::clone(&openai);
-                    Box::pin(async move {
-                        combine_summaries(summaries, &stream, &openai)
-                            .await
-                            .map_err(|e| e.into())
-                    })
+                    Box::pin(async move { combine_summaries(summaries, &stream, &openai).await })
                 },
             )
             .await
