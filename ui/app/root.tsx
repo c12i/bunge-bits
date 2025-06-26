@@ -9,9 +9,12 @@ import {
   ScrollRestoration,
   useLoaderData,
 } from "@remix-run/react";
+import { useTranslation } from "react-i18next";
+import { useChangeLanguage } from "remix-i18next/react";
 
 import Footer from "./components/footer";
 import Header from "./components/header";
+import i18nServer from "./i18n";
 
 export const links: LinksFunction = () => [
   {
@@ -23,9 +26,11 @@ export const links: LinksFunction = () => [
 ];
 
 export async function loader({ request }: LoaderFunctionArgs) {
+  const locale = await i18nServer.getLocale(request);
   const origin = new URL(request.url).origin;
 
   return Response.json({
+    locale,
     origin,
     env: {
       PLAUSIBLE_BASE_URL: process.env.PUBLIC_PLAUSIBLE_BASE_URL,
@@ -71,9 +76,12 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 };
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { env } = useLoaderData<typeof loader>();
+  const { locale, env } = useLoaderData<typeof loader>();
+  const { i18n } = useTranslation();
+
+  useChangeLanguage(locale);
   return (
-    <html lang="en">
+    <html lang={locale} dir={i18n.dir()}>
       <head>
         <Meta />
         <Links />
