@@ -45,6 +45,20 @@ const TRANSCRIPT_CHUNK_DELIMITER: &str = "----END_OF_CHUNK----";
 // leave ~18k tokens for system/user prompts and model response
 const GPT4O_CONTEXT_LIMIT: usize = 128_000 - 18_000;
 
+// Repeated number chains like 1.0-2-1.0-1-1-...
+pub static RE_NUMBER_CHAIN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)(\d+(?:[.\-]\d+){5,})").unwrap());
+// Numeric-only garbage lines like "1.0-1-1-1-1-1-1"
+pub static RE_NUMERIC_LINE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)^[\d.\-, ]{10,}$").unwrap());
+
+/// Fetches and processes a batch of Kenyan parliamentary video streams.
+///
+/// This function coordinates the end-to-end pipeline for downloading recent streams,
+/// extracting transcripts, cleaning noisy content, summarizing them using OpenAI's GPT-4o,
+/// and storing the final Markdown summaries.
+///
+/// It limits processing to the `max_streams` most recent unprocessed videos.
 #[tracing::instrument]
 pub async fn fetch_and_process_streams(max_streams: usize) -> anyhow::Result<()> {
     let client = &CLIENT;
@@ -225,24 +239,17 @@ async fn summarize_streams(
         let transcript_path = format!("{WORKDIR}/{}.txt", stream.video_id);
         let transcript = std::fs::read_to_string(&transcript_path)
             .with_context(|| format!("Failed to read transcript at {}", transcript_path))?;
-
-        let re_number_chain = Regex::new(r"(?m)(\d+(?:[.\-]\d+){5,})")?;
-        let transcript = re_number_chain.replace_all(&transcript, "").into_owned();
-
-        let re_repeated_words = Regex::new(r"\b(\w+)(?:\s+\1){4,}\b")?;
-        let transcript = re_repeated_words
-            .replace_all(&transcript, "$1")
-            .into_owned();
+        let transcript = clean_transcript(transcript);
 
         let token_count = count_tokens(&transcript)?;
 
         let result = if token_count <= GPT4O_CONTEXT_LIMIT {
-            // full transcript fits – summarize directly
+            // full transcript fits –> summarize directly
             summarize_stream(stream, openai.as_ref(), transcript)
                 .await
                 .with_context(|| format!("Failed to summarize full stream {}", stream.video_id))?
         } else {
-            // transcript is too long – chunk and summarize
+            // transcript is too long –> chunk and summarize
             summarize_linear(
                 &transcript,
                 TRANSCRIPT_CHUNK_DELIMITER,
@@ -280,6 +287,22 @@ async fn summarize_streams(
     db.bulk_insert_streams(streams).await?;
 
     Ok(())
+}
+
+/// Cleans up a raw transcript string
+pub fn clean_transcript(text: String) -> String {
+    let cleaned = text.to_string();
+
+    let cleaned = RE_NUMBER_CHAIN.replace_all(&cleaned, "").into_owned();
+    let cleaned = RE_NUMERIC_LINE.replace_all(&cleaned, "").into_owned();
+
+    let cleaned = cleaned.replace("\r\n", "\n").replace("\t", " ");
+    let cleaned = Regex::new(r"[ ]{2,}")
+        .unwrap()
+        .replace_all(&cleaned, " ")
+        .into_owned();
+
+    cleaned.trim().to_string()
 }
 
 #[tracing::instrument(skip(stream, openai, transcript))]
@@ -640,5 +663,33 @@ pub fn cleanup_audio_dir() {
         } else {
             tracing::info!(path = ?audio_path, "Cleaned up audio directory");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn removes_number_chains() {
+        let input = "1.0-2-1.0-1-1-1-1-1-1.0-1\nSome actual content.";
+        let output = clean_transcript(input.to_string());
+        assert!(!output.contains("1.0-2-1.0"));
+        assert!(output.contains("Some actual content"));
+    }
+
+    #[test]
+    fn removes_numeric_lines() {
+        let input = "123.0-1-1-1-1\nNormal line";
+        let output = clean_transcript(input.to_string());
+        assert!(output.contains("Normal line"));
+        assert!(!output.contains("123.0"));
+    }
+
+    #[test]
+    fn normalizes_whitespace() {
+        let input = "Too    many     spaces.";
+        let output = clean_transcript(input.to_string());
+        assert_eq!(output, "Too many spaces.");
     }
 }
