@@ -61,21 +61,12 @@ export default function AboutPage() {
         hosting, and database storage. If you’d like to help keep it alive and growing,
         your support would mean a lot. You can do so here:{" "}
         <a
-          href="https://www.buymeacoffee.com/c12i"
+          href="https://support-bungebits.c12i.xyz"
           target="_blank"
           rel="noopener noreferrer"
           className="underline hover:text-primary"
         >
-          buymeacoffee.com/c12i
-        </a>{" "}
-        or{" "}
-        <a
-          href="https://github.com/sponsors/c12i"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline hover:text-primary"
-        >
-          github.com/sponsors/c12i
+          support-bungebits.c12i.xyz
         </a>
       </p>
 
