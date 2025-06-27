@@ -1,5 +1,7 @@
 import { Link } from "@remix-run/react";
 
+import LanguageSwitcher from "~/components/language-switcher";
+
 const Header = () => {
   return (
     <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
@@ -27,6 +29,9 @@ const Header = () => {
               About
             </Link>
           </nav>
+          <div className="flex items-center space-x-4">
+            <LanguageSwitcher />
+          </div>
         </div>
       </div>
     </header>
