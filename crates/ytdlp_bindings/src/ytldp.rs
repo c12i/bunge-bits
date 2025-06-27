@@ -293,21 +293,70 @@ impl YtDlp {
     /// This method appends the cookies argument to the command if `cookies_path` is set.
     #[tracing::instrument(skip(self))]
     pub(crate) fn run_yt_dlp(&self, args: &[&str]) -> Result<(), YtDlpError> {
-        let mut cmd = Command::new(&self.binary_path);
+        let max_retries = 3;
+        let retry_delay = std::time::Duration::from_secs(2);
+        let mut attempts = 0;
+
+        loop {
+            attempts += 1;
+            let result = self.run_yt_dlp_once(args);
+
+            match result {
+                Ok(()) => return Ok(()),
+                Err(err) if matches!(err, YtDlpError::NonZeroExit { .. }) => {
+                    tracing::warn!(
+                        ?err,
+                        attempts,
+                        "yt-dlp failed (attempt {}/{})",
+                        attempts,
+                        max_retries
+                    );
+
+                    if attempts == max_retries {
+                        return Err(err);
+                    }
+
+                    std::thread::sleep(retry_delay);
+                }
+                Err(err) => return Err(err),
+            }
+        }
+    }
+
+    fn run_yt_dlp_once(&self, args: &[&str]) -> Result<(), YtDlpError> {
+        let mut cmd = std::process::Command::new(&self.binary_path);
 
         if let Some(ref cookies) = self.cookies_path {
+            if !cookies.exists() {
+                return Err(YtDlpError::InvalidPath(format!(
+                    "Cookies file not found: {}",
+                    cookies.display()
+                )));
+            }
             cmd.arg("--cookies").arg(cookies);
         }
 
-        let output = cmd.args(args).output()?;
+        cmd.args(args);
+        let output = cmd.output()?;
 
         if output.status.success() {
             Ok(())
         } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+
+            let output_msg = if !stderr.trim().is_empty() {
+                stderr.into()
+            } else if !stdout.trim().is_empty() {
+                stdout.into()
+            } else {
+                "yt-dlp exited with non-zero status but produced no output.".into()
+            };
+
             Err(YtDlpError::NonZeroExit {
                 command: self.binary_path.to_string_lossy().into(),
                 status: output.status.code().unwrap_or(-1),
-                output: String::from_utf8_lossy(&output.stderr.to_vec()).into(),
+                output: output_msg,
             })
         }
     }
@@ -366,7 +415,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Flaky"]
+    #[ignore = "Needs cookies.txt which is not available in CI"]
     fn test_download_sub() {
         let ytdlp = YtDlp::new().unwrap();
         let temp_dir = env::temp_dir();
@@ -421,9 +470,10 @@ mod tests {
     const TEST_VIDEO_URL: &str = "https://www.youtube.com/watch?v=jNQXAC9IVRw";
 
     #[test]
-    #[ignore = "TODO: Passes locally but fails in CI"]
+    #[ignore = "Needs cookies.txt which is not available in CI"]
     fn test_download_video() {
-        let ytdlp = YtDlp::new().expect("Failed to create YtDlp instance");
+        let ytdlp = YtDlp::new_with_cookies(Some(PathBuf::from("")))
+            .expect("Failed to create YtDlp instance");
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let output_template = temp_dir.path().join("%(title)s.%(ext)s");
 
@@ -451,6 +501,29 @@ mod tests {
             file_size > 500_000,
             "File size is too small, expected > 1MB, got {} bytes",
             file_size
+        );
+    }
+
+    #[test]
+    fn test_missing_cookies_file_fails_gracefully() {
+        let ytdlp =
+            YtDlp::new_with_cookies(Some(PathBuf::from("/nonexistent/cookies.txt"))).unwrap();
+        let output_path = std::env::temp_dir().join("dummy.%(ext)s");
+        let result = ytdlp.download_auto_sub(TEST_VIDEO_URL, output_path);
+
+        assert!(matches!(result, Err(YtDlpError::InvalidPath(_))));
+    }
+
+    #[test]
+    fn test_download_invalid_url_fails() {
+        let ytdlp = YtDlp::new().unwrap();
+        let output_path = std::env::temp_dir().join("invalid.%(ext)s");
+        let result = ytdlp.download_video("https://www.youtube.com/watch?v=invalid", output_path);
+
+        assert!(
+            matches!(result, Err(YtDlpError::NonZeroExit { .. })),
+            "Expected a failure but got: {:?}",
+            result
         );
     }
 }

@@ -53,4 +53,4 @@ Your support helps cover:
 - Cloud hosting and database infrastructure
 - OpenAI Whisper + GPT 4o API usage
 
-Sponsorship is available via [GitHub Sponsorship](https://github.com/sponsors/c12i) or [Buy Me a Coffee](https://buymeacoffee.com/c12i). Every bit helps to keep Kenyan legislative content accessible to all.
+Sponsorship is available via [GitHub Sponsorship](https://github.com/sponsors/c12i) or [support via alternative cash and crypto options](https://support-bungebits.c12i.xyz). Every bit helps to keep Kenyan legislative content accessible to all.
