@@ -31,8 +31,6 @@ Ultimately, Bunge Bits seeks to contribute to a more engaged, informed, and part
 
 ## Development Setup
 
-### Component Setup
-
 - [`stream_pulse`](./crates/stream_pulse/README.md#development-setup)
 - [`stream_datastore`](./crates/stream_datastore/README.md)
 - [`ui`](./ui/README.md)
