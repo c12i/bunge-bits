@@ -6,7 +6,7 @@ use crate::{error::YtDlpError, YtDlp};
 use std::path::Path;
 
 /// A trait for processing video files.
-/// Requires `ffmpeg` v7* available in the evironment
+/// Requires `ffmpeg` v7* available in the environment
 pub trait VideoProcessor {
     /// Converts a video to a different format.
     ///
