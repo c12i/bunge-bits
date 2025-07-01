@@ -333,7 +333,7 @@ impl YtDlp {
                     cookies.display()
                 )));
             }
-            cmd.arg("--cookies").arg(cookies);
+            cmd.arg("--cookies").arg(format!("{}", cookies.display()));
         }
 
         cmd.args(args);
