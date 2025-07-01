@@ -8,9 +8,6 @@ use futures::FutureExt;
 use stream_pulse::{fetch_and_process_streams, tracing::init_tracing_subscriber};
 use tokio_cron_scheduler::{JobBuilder, JobScheduler};
 
-// Should run every 4 hours
-const CRON_EXPR: &str = "0 0 */4 * * *";
-
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     let _ = dotenvy::dotenv();
@@ -27,11 +24,15 @@ async fn main() -> anyhow::Result<()> {
     init_tracing_subscriber()?;
 
     let mut scheduler = JobScheduler::new().await?;
+    let cron_schedule =
+        std::env::var("CRON_SCHEDULE").unwrap_or_else(|_| "0 0 */4 * * *".to_string());
+
+    tracing::info!(%cron_schedule);
 
     let job = JobBuilder::new()
         .with_timezone(chrono_tz::Africa::Nairobi)
         .with_cron_job_type()
-        .with_schedule(CRON_EXPR)?
+        .with_schedule(&cron_schedule)?
         .with_run_async(Box::new(|uuid, _| {
             Box::pin(async move {
                 // Maximum streams that can be processed in a run
