@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("linux", "x86_64" | "x86") => "yt-dlp_linux",
         ("linux", "aarch64") => "yt-dlp_linux_aarch64",
         ("linux", "arm") => "yt-dlp_linux_armv7I",
-        _ => return Err(format!("Unsupported platform: {} {}", target_os, target_arch).into()),
+        _ => return Err(format!("Unsupported platform: {target_os} {target_arch}").into()),
     };
 
     // Create an output directory for the binary
