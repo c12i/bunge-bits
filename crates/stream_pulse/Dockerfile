@@ -1,5 +1,5 @@
 # base image
-FROM rust:1.87 AS chef
+FROM rust:1.88 AS chef
 RUN cargo install cargo-chef
 WORKDIR /app
 
@@ -35,5 +35,6 @@ ENV OPENAI_API_KEY= \
   DATABASE_URL= \
   SENTRY_DSN= \
   MAX_STREAMS_TO_PROCESS= \
-  YTDLP_COOKIES_PATH=
+  YTDLP_COOKIES_PATH= \
+  CRON_SCHEDULE= 
 CMD ["stream-pulse-cron"]
