@@ -1,6 +1,6 @@
+import { Link } from "@remix-run/react";
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link } from "@remix-run/react";
 
 const DONATION_BANNER_KEY = "hideDonationBanner";
 
