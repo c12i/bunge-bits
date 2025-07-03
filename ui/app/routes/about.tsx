@@ -1,11 +1,51 @@
 import { MetaFunction } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import { format } from "date-fns";
 
 export const meta: MetaFunction = () => [
   { title: "About | Bunge Bits" },
   { name: "description", content: "Learn more about the Bunge Bits project" },
 ];
 
+type BackendStatus = {
+  healthy: boolean;
+  next_tick: Date;
+};
+
+export async function loader() {
+  try {
+    const res = await fetch("https://bungebits-status.c12i.xyz/status");
+    const data: BackendStatus = await res.json();
+
+    return Response.json(
+      {
+        healthy: data.healthy ?? false,
+        next_tick: data.next_tick ?? null,
+      },
+      {
+        headers: {
+          "Cache-Control": "public, max-age=1800, stale-while-revalidate=3600",
+        },
+      }
+    );
+  } catch {
+    return Response.json(
+      {
+        healthy: false,
+        next_tick: null,
+      },
+      {
+        headers: {
+          "Cache-Control": "public, max-age=1800, stale-while-revalidate=3600",
+        },
+      }
+    );
+  }
+}
+
 export default function AboutPage() {
+  const { healthy, next_tick } = useLoaderData<typeof loader>();
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-12 space-y-6">
       <h1 className="text-3xl font-bold">About Bunge Bits</h1>
@@ -48,7 +88,8 @@ export default function AboutPage() {
       <p>
         This project is just getting started. I plan to expand support for Swahili
         translations, integrate named-entity recognition to track bills and MPs, and build
-        features for exploring trends over time.
+        features for exploring trends over time via Hansard reports and historical
+        summaries.
       </p>
       <p>
         If you're a developer, designer, journalist, or researcher interested in civic
@@ -79,8 +120,25 @@ export default function AboutPage() {
         >
           Collins Muriuki
         </a>{" "}
-        | Contact: <code>hello[at]c12i.xyz</code>
+        | Contact: <code>hello[at]c12i[dot]xyz</code>
       </p>
+
+      <div className="text-sm text-muted-foreground bg-muted/40 rounded-md px-4 py-3 mt-6 text-center">
+        <p className="mb-1 flex justify-center items-center gap-2">
+          <span
+            className={`h-2 w-2 rounded-full ${healthy ? "bg-green-500" : "bg-red-500"}`}
+          />
+          Backend: {healthy ? "Healthy" : "Unavailable"}
+        </p>
+        {next_tick && (
+          <p className="text-xs">
+            Next scheduled update:{" "}
+            <span className="font-mono">
+              {format(new Date(next_tick), "MMM d, yyyy HH:mm")} (Nairobi Time)
+            </span>
+          </p>
+        )}
+      </div>
     </div>
   );
 }
