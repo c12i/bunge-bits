@@ -3264,6 +3264,7 @@ dependencies = [
  "thiserror 2.0.12",
  "tokio",
  "tokio-cron-scheduler",
+ "tower-http",
  "tracing",
  "tracing-bunyan-formatter",
  "tracing-subscriber",
@@ -3616,6 +3617,20 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "tower-http"
+version = "0.6.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "adc82fd73de2a9722ac5da747f12383d2bfdb93591ee6c58486e0097890f05f2"
+dependencies = [
+ "bitflags 2.6.0",
+ "bytes",
+ "http 1.1.0",
+ "pin-project-lite",
+ "tower-layer",
+ "tower-service",
 ]
 
 [[package]]

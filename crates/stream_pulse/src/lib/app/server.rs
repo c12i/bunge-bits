@@ -18,19 +18,35 @@
 //!
 //! The `next_tick` value is updated every few seconds based on the scheduler state.
 
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
-use axum::{extract::State, routing::get, Json, Router};
+use axum::{extract::State, http::header, routing::get, Json, Router};
 use chrono::SecondsFormat;
+use reqwest::Method;
 use serde::Serialize;
 use tokio::net::TcpListener;
+use tower_http::cors::CorsLayer;
 
 use super::AppState;
 
+pub static ALLOWED_ORIGINS: LazyLock<Vec<header::HeaderValue>> = LazyLock::new(|| {
+    vec![
+        header::HeaderValue::from_static("https://bungebits.ke"),
+        header::HeaderValue::from_static("https://www.bungebits.ke"),
+        header::HeaderValue::from_static("http://localhost:5173"),
+    ]
+});
+
 pub async fn start_server(app_state: Arc<AppState>) -> anyhow::Result<()> {
+    let cors = CorsLayer::new()
+        .allow_origin(ALLOWED_ORIGINS.clone())
+        .allow_methods([Method::GET])
+        .allow_headers([header::CONTENT_TYPE]);
+
     let app = Router::new()
         .route("/status", get(status))
-        .with_state(app_state);
+        .with_state(app_state)
+        .layer(cors);
 
     let addr = "0.0.0.0:8001";
     let listener = TcpListener::bind(addr).await?;

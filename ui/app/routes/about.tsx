@@ -7,10 +7,15 @@ export const meta: MetaFunction = () => [
   { name: "description", content: "Learn more about the Bunge Bits project" },
 ];
 
+type BackendStatus = {
+  healthy: boolean;
+  next_tick: Date;
+};
+
 export async function loader() {
   try {
     const res = await fetch("https://bungebits-status.c12i.xyz/status");
-    const data = await res.json();
+    const data: BackendStatus = await res.json();
 
     return Response.json(
       {
