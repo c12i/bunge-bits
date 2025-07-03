@@ -48,7 +48,7 @@ pub async fn start_cron(cron_schedule: &str, app_state: Arc<AppState>) -> anyhow
         .with_timezone(chrono_tz::Africa::Nairobi)
         .with_job_id(job_id.into())
         .with_cron_job_type()
-        .with_schedule(&cron_schedule)?
+        .with_schedule(cron_schedule)?
         .with_run_async(Box::new(|uuid, _| {
             Box::pin(async move {
                 // Maximum streams that can be processed in a run

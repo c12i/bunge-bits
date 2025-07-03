@@ -54,7 +54,7 @@ async fn status(State(app_state): State<Arc<AppState>>) -> Json<StatusResponse> 
         .next_tick_for_job
         .lock()
         .ok()
-        .and_then(|guard| guard.clone());
+        .and_then(|guard| *guard);
 
     Json(StatusResponse {
         healthy: true,
