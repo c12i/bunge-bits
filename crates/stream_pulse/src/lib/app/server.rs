@@ -32,7 +32,7 @@ pub async fn start_server(app_state: Arc<AppState>) -> anyhow::Result<()> {
         .route("/status", get(status))
         .with_state(app_state);
 
-    let addr = "127.0.0.1:8001";
+    let addr = "0.0.0.0:8001";
     let listener = TcpListener::bind(addr).await?;
 
     tracing::info!("HTTP server started at http://{addr}");
@@ -48,7 +48,6 @@ struct StatusResponse {
     next_tick: Option<String>,
 }
 
-#[tracing::instrument(skip(app_state))]
 async fn status(State(app_state): State<Arc<AppState>>) -> Json<StatusResponse> {
     let next = app_state
         .next_tick_for_job
