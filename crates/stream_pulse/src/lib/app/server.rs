@@ -32,7 +32,7 @@ pub async fn start_server(app_state: Arc<AppState>) -> anyhow::Result<()> {
         .route("/status", get(status))
         .with_state(app_state);
 
-    let addr = "127.0.0.1:8001";
+    let addr = "0.0.0.0:8001";
     let listener = TcpListener::bind(addr).await?;
 
     tracing::info!("HTTP server started at http://{addr}");

@@ -20,7 +20,6 @@ categories = [
 license = "MIT"
 license-file = "LICENSE"
 
-
 [workspace.dependencies]
 anyhow = "1.0"
 chrono = { version = "0.4.41", default-features = false, features = ["std"] }
