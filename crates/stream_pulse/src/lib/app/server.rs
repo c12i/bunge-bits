@@ -48,7 +48,6 @@ struct StatusResponse {
     next_tick: Option<String>,
 }
 
-#[tracing::instrument(skip(app_state))]
 async fn status(State(app_state): State<Arc<AppState>>) -> Json<StatusResponse> {
     let next = app_state
         .next_tick_for_job
