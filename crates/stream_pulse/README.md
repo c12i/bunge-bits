@@ -47,6 +47,7 @@ To run `stream-pulse-cron` reliably with environment configuration and persisten
 docker run -d \
   --name stream-pulse-cron \
   --restart unless-stopped \
+  -p 8001:8001 \ # for the status check HTTP server
   -e OPENAI_API_KEY="..." \
   -e DATABASE_URL="..." \
   -e SENTRY_DSN="..." \

@@ -40,6 +40,9 @@ dotenvy = "0.15.7"
 sentry = "0.41.0"
 sentry-tracing = "0.41.0"
 another-tiktoken-rs = { version = "0.1.2", features = ["async-openai"] }
+axum = "0.8.4"
+uuid = { version = "1.17.0", features = ["v4"] }
+chrono = { version = "0.4.41", default-features = false, features = ["std"] }
 
 [dev-dependencies]
 clap = { version = "4.5.40", features = ["derive"] }
