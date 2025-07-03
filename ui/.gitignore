@@ -5,3 +5,5 @@ node_modules
 .env
 
 /app/generated/prisma
+
+/.idea
