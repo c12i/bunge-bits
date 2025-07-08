@@ -6,7 +6,7 @@ use crate::{error::YtDlpError, YtDlp};
 use std::path::Path;
 
 /// A trait for processing video files.
-/// Requires `ffmpeg` v7* available in the evironment
+/// Requires `ffmpeg` v7* available in the environment
 pub trait VideoProcessor {
     /// Converts a video to a different format.
     ///
@@ -75,7 +75,7 @@ impl VideoProcessor for YtDlp {
         let output_str = output_template.as_ref().to_str().ok_or_else(|| {
             YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
         })?;
-        let fps = format!("fps={}", fps);
+        let fps = format!("fps={fps}");
         let extra_args = extra_args.map(|args| args.join(" ")).unwrap_or_default();
 
         // ffmpeg -i input_video.mp4 -vf fps=1/10 output_%04d.png

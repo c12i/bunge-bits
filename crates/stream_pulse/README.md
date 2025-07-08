@@ -12,6 +12,7 @@ DATABASE_URL="<your_postgres_database_url>"
 YTDLP_COOKIES_PATH="<path to your cookies.txt file>" # required in order to authenticate to yt, especially in a cloud env
 SENTRY_DSN="<optional_sentry_dsn>" # can be omitted for local development
 MAX_STREAMS_TO_PROCESS=3 # optional config of the maxim number of streams that can be processed in a given run
+CRON_SCHEDULE="<cron_expression>" # optional cron schedule to run the pipeline. Defaults to "0 0 */4 * * *" (every 4 hours)
 ```
 
 Please read [this guide](../ytdlp_bindings/README.md#using-cookiestxt-for-authenticated-youtube-downloads) on how to setup your `cookies.txt` file.
@@ -46,9 +47,11 @@ To run `stream-pulse-cron` reliably with environment configuration and persisten
 docker run -d \
   --name stream-pulse-cron \
   --restart unless-stopped \
+  -p 8001:8001 \ # for the status check HTTP server
   -e OPENAI_API_KEY="..." \
   -e DATABASE_URL="..." \
   -e SENTRY_DSN="..." \
+  -e CRON_SCHEDULE="..." \
   -e MAX_STREAMS_TO_PROCESS=2 \
   -e YTDLP_COOKIES_PATH=/app/cookies.txt \
   -v /path/to/cookies.txt:/app/cookies.txt \

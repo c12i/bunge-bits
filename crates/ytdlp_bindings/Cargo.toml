@@ -17,8 +17,8 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
-which = "8.0.0"
 webvtt-parser = { version = "1.0.0-beta.1", optional = true }
+which = "8.0.0"
 
 [build-dependencies]
 reqwest = { version = "0.12", features = ["blocking"] }

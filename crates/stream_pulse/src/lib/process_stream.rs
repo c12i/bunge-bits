@@ -131,9 +131,11 @@ fn handle_stream_audio(
 
     // Skip download if .mp3 already exists
     if !audio_mp3_path.exists() {
-        if let Err(e) = ytdlp.download_audio(&youtube_stream, &audio_base_path) {
-            tracing::error!(error = ?e, "Failed to download video");
-            bail!("Failed to download video: {:?}", e);
+        if let Err(e) = ytdlp
+            .download_audio(&youtube_stream, &audio_base_path)
+            .inspect_err(|e| tracing::error!(error = ?e, "Failed to download audio"))
+        {
+            bail!("Failed to download audio: {:?}", e);
         };
     } else {
         tracing::debug!("Audio already exists at {:?}", audio_mp3_path);
@@ -179,8 +181,8 @@ async fn transcribe_streams(streams: &[Stream], openai: &OpenAiClient) -> anyhow
         for entry in entries {
             match transcribe_audio(entry.path(), openai).await {
                 Ok(transcription) => {
-                    write!(transcript_file, "{}", transcription)?;
-                    writeln!(transcript_file, "{}", TRANSCRIPT_CHUNK_DELIMITER)?;
+                    write!(transcript_file, "{transcription}")?;
+                    writeln!(transcript_file, "{TRANSCRIPT_CHUNK_DELIMITER}")?;
                 }
                 Err(err) => {
                     tracing::error!(error = ?err, "Skipping failed chunk {}", entry.path().display());
@@ -245,7 +247,7 @@ async fn summarize_streams(
     for stream in streams.iter_mut() {
         let transcript_path = format!("{WORKDIR}/{}.txt", stream.video_id);
         let transcript = std::fs::read_to_string(&transcript_path)
-            .with_context(|| format!("Failed to read transcript at {}", transcript_path))?;
+            .with_context(|| format!("Failed to read transcript at {transcript_path}"))?;
         let transcript = clean_transcript(transcript);
 
         let token_count = count_tokens(&transcript)?;
@@ -362,7 +364,7 @@ async fn summarize_stream(
             Ok(response) => break chat_completions_text_from_response(response),
             Err(err) => {
                 attempt += 1;
-                let err_str = format!("{:?}", err);
+                let err_str = format!("{err:?}");
                 // In case of a 429 response, OpenAI will recommend a wait time
                 // we try to use the recommended wait time here, otherwise the fallback is used
                 let wait_ms = extract_wait_time_ms_from_error(&err_str).unwrap_or_else(|| {
@@ -471,7 +473,7 @@ Transcript Chunk:
             Ok(response) => break chat_completions_text_from_response(response),
             Err(err) => {
                 attempt += 1;
-                let err_str = format!("{:?}", err);
+                let err_str = format!("{err:?}");
                 // In case of a 429 response, OpenAI will recommend a wait time
                 // we try to use the recommended wait time here, otherwise the fallback is used
                 let wait_ms = extract_wait_time_ms_from_error(&err_str).unwrap_or_else(|| {
@@ -555,7 +557,7 @@ Summaries:
             Err(err) => {
                 attempt += 1;
 
-                let err_str = format!("{:?}", err);
+                let err_str = format!("{err:?}");
                 let wait_ms = extract_wait_time_ms_from_error(&err_str).unwrap_or_else(|| {
                     let fallback = 2_u64.pow(attempt) * 1000;
                     tracing::warn!(attempt, "No wait time found, using fallback {}ms", fallback);

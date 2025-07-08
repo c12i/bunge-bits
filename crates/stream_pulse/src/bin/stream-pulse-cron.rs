@@ -1,15 +1,9 @@
-//! # Cron Job Workflow for Parliament of Kenya Channel Streams
-//!
-//! A cron job that runs every 4 hours to fetch and process archived streams from the Parliament of Kenya's YouTube channel.
-//!
-//! Potential panics from the `fetch_and_process_streams` entry-point are handled gracefully
+use std::sync::{Arc, Mutex};
 
-use futures::FutureExt;
-use stream_pulse::{fetch_and_process_streams, tracing::init_tracing_subscriber};
-use tokio_cron_scheduler::{JobBuilder, JobScheduler};
+use stream_pulse::{start_cron, start_server, tracing::init_tracing_subscriber, AppState};
 
-// Should run every 4 hours
-const CRON_EXPR: &str = "0 0 */4 * * *";
+/// Every 4 hours
+const DEFAULT_CRON_SCHEDULE: &str = "0 0 */4 * * *";
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
@@ -26,40 +20,17 @@ async fn main() -> anyhow::Result<()> {
 
     init_tracing_subscriber()?;
 
-    let mut scheduler = JobScheduler::new().await?;
+    let cron_schedule =
+        std::env::var("CRON_SCHEDULE").unwrap_or_else(|_| DEFAULT_CRON_SCHEDULE.to_string());
 
-    let job = JobBuilder::new()
-        .with_timezone(chrono_tz::Africa::Nairobi)
-        .with_cron_job_type()
-        .with_schedule(CRON_EXPR)?
-        .with_run_async(Box::new(|uuid, _| {
-            Box::pin(async move {
-                // Maximum streams that can be processed in a run
-                let max_streams = std::env::var("MAX_STREAMS_TO_PROCESS")
-                    .ok()
-                    .and_then(|v| v.parse::<usize>().ok())
-                    .unwrap_or(3);
+    let app_state = Arc::new(AppState {
+        next_tick_for_job: Mutex::new(None),
+    });
 
-                tracing::info!(job_id = %uuid, max_streams, "Running cron job: {}", uuid);
-
-                let result = std::panic::AssertUnwindSafe(fetch_and_process_streams(max_streams))
-                    .catch_unwind()
-                    .await;
-
-                if let Err(err) = result {
-                    tracing::error!(error = ?err, "Job panicked");
-                }
-            })
-        }))
-        .build()?;
-
-    scheduler.add(job).await?;
-    scheduler.start().await?;
-
-    // Keep the main thread alive
-    tokio::signal::ctrl_c().await?;
-    tracing::info!("Shutting down scheduler...");
-    scheduler.shutdown().await?;
+    tokio::select! {
+        _ = start_cron(&cron_schedule, app_state.clone()) => {}
+        _ = start_server(app_state.clone()) => {}
+    }
 
     Ok(())
 }
