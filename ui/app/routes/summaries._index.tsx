@@ -228,7 +228,11 @@ export default function Index() {
                   {highlightText(
                     removeMarkdown(stream.summary_md.split("\n").slice(1).join("\n"))
                       .replace(/\\n/g, " ")
-                      .replace(/\s+/g, " ") || "No summary available.",
+                      .replace(/\s+/g, " ") ||
+                      removeMarkdown(stream.summary_md)
+                        .replace(/\\n/g, " ")
+                        .replace(/\s+/g, " ") ||
+                      "No Preview Available",
                     queryTerms
                   )}
                 </CardDescription>
