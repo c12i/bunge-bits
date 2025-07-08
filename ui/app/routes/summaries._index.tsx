@@ -226,7 +226,7 @@ export default function Index() {
               <CardContent className="pt-0">
                 <CardDescription className="line-clamp-3 mb-4 text-sm leading-relaxed">
                   {highlightText(
-                    removeMarkdown(stream.summary_md)
+                    removeMarkdown(stream.summary_md.split("\n").slice(1).join("\n"))
                       .replace(/\\n/g, " ")
                       .replace(/\s+/g, " ") || "No summary available.",
                     queryTerms
