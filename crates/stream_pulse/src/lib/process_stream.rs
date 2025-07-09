@@ -123,20 +123,26 @@ fn handle_stream_audio(
 ) -> anyhow::Result<()> {
     let youtube_stream = format!("https://youtube.com/watch?v={}", stream.video_id);
 
-    // Pass path without extension to yt-dlp
-    let audio_base_path = audio_download_path.join(&stream.video_id);
-    let audio_mp3_path = audio_base_path.with_extension("mp3");
-
+    // Set up the output path template with .%(ext)s for yt-dlp
+    let audio_output_template = audio_download_path.join(format!("{}.%(ext)s", stream.video_id));
+    let audio_mp3_path = audio_download_path.join(format!("{}.mp3", stream.video_id));
     let chunked_audio_path = PathBuf::from(format!("{WORKDIR}/audio/{}", stream.video_id));
 
     // Skip download if .mp3 already exists
     if !audio_mp3_path.exists() {
         if let Err(e) = ytdlp
-            .download_audio(&youtube_stream, &audio_base_path)
+            .download_audio(&youtube_stream, &audio_output_template)
             .inspect_err(|e| tracing::error!(error = ?e, "Failed to download audio"))
         {
             bail!("Failed to download audio: {:?}", e);
-        };
+        }
+
+        if !audio_mp3_path.exists() {
+            bail!(
+                "yt-dlp did not produce expected file: {}",
+                audio_mp3_path.display()
+            );
+        }
     } else {
         tracing::debug!("Audio already exists at {:?}", audio_mp3_path);
     }
