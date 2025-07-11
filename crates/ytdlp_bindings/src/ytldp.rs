@@ -400,8 +400,18 @@ mod tests {
     use std::io::Read;
     use tempfile::tempdir;
 
+    fn set_yt_dlp_env() {
+        let out_dir = env!("OUT_DIR");
+        let path = format!("{}/yt-dlp", out_dir);
+        unsafe {
+            std::env::set_var("YTDLP_BINARY", path);
+        }
+    }
+
     #[test]
     fn test_new() {
+        set_yt_dlp_env();
+
         let result = YtDlp::new();
         assert!(result.is_ok());
     }
@@ -517,6 +527,8 @@ mod tests {
 
     #[test]
     fn test_missing_cookies_file_fails_gracefully() {
+        set_yt_dlp_env();
+
         let ytdlp =
             YtDlp::new_with_cookies(Some(PathBuf::from("/nonexistent/cookies.txt"))).unwrap();
         let output_path = std::env::temp_dir().join("dummy.%(ext)s");
@@ -527,6 +539,8 @@ mod tests {
 
     #[test]
     fn test_download_invalid_url_fails() {
+        set_yt_dlp_env();
+
         let ytdlp = YtDlp::new().unwrap();
         let output_path = std::env::temp_dir().join("invalid.%(ext)s");
         let result = ytdlp.download_video("https://www.youtube.com/watch?v=invalid", output_path);
