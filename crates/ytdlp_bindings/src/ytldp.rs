@@ -1,11 +1,8 @@
-use std::env;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::YtDlpError;
-
-const YTDLP_BINARY: &str = env!("YTDLP_BINARY");
 
 /// The main struct for interacting with yt-dlp.
 ///
@@ -43,11 +40,8 @@ impl YtDlp {
     #[tracing::instrument]
     pub fn new_with_cookies(cookies_path: Option<PathBuf>) -> Result<Self, YtDlpError> {
         #[allow(clippy::const_is_empty)]
-        let binary_path = if !YTDLP_BINARY.is_empty() {
-            PathBuf::from(YTDLP_BINARY)
-        } else {
-            which::which("yt-dlp").map_err(|_| YtDlpError::BinaryNotFound("yt-dlp".to_string()))?
-        };
+        let binary_path =
+            which::which("yt-dlp").map_err(|_| YtDlpError::BinaryNotFound("yt-dlp".to_string()))?;
 
         Ok(YtDlp {
             binary_path,
@@ -139,6 +133,8 @@ impl YtDlp {
         url: &str,
         output_template: P,
     ) -> Result<(), YtDlpError> {
+        tracing::info!(binary_path=?self.binary_path, "yt-dlp command path");
+
         let output_str = output_template.as_ref().to_str().ok_or_else(|| {
             YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
         })?;
@@ -385,6 +381,7 @@ impl YtDlp {
 mod tests {
     use super::*;
     use glob::glob;
+    use std::env;
     use std::fs;
     use std::io::Read;
     use tempfile::tempdir;
