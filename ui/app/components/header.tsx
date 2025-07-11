@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 const DONATION_BANNER_KEY = "hideDonationBanner";
 
+import LanguageSwitcher from "~/components/language-switcher";
+
 const Header = () => {
   const [showBanner, setShowBanner] = useState(false);
 
@@ -62,15 +64,9 @@ const Header = () => {
                 </span>
               </div>
             </Link>
-
-            <nav className="flex items-center space-x-6">
-              <Link
-                to="/about"
-                className="text-gray-600 hover:text-red-800 transition-colors font-medium"
-              >
-                About
-              </Link>
-            </nav>
+          </nav>
+          <div className="flex items-center space-x-4">
+            <LanguageSwitcher />
           </div>
         </div>
       </header>
