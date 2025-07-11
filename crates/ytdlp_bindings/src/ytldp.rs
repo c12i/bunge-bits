@@ -40,13 +40,27 @@ impl YtDlp {
     #[tracing::instrument]
     pub fn new_with_cookies(cookies_path: Option<PathBuf>) -> Result<Self, YtDlpError> {
         #[allow(clippy::const_is_empty)]
-        let binary_path =
-            which::which("yt-dlp").map_err(|_| YtDlpError::BinaryNotFound("yt-dlp".to_string()))?;
+        let binary_path = Self::resolve_yt_dlp_binary()?;
 
         Ok(YtDlp {
             binary_path,
             cookies_path,
         })
+    }
+
+    /// Dynamically resolve path to yt-dlp binary
+    fn resolve_yt_dlp_binary() -> Result<std::path::PathBuf, YtDlpError> {
+        // use the vendored binary if it exists
+        #[cfg(feature = "yt-dlp-vendored")]
+        {
+            let path = std::path::Path::new(env!("YTDLP_BINARY"));
+            if path.exists() {
+                return Ok(path.to_path_buf());
+            }
+        }
+
+        // fallback to looking it up in PATH
+        which::which("yt-dlp").map_err(|_| YtDlpError::BinaryNotFound("yt-dlp".to_string()))
     }
 
     /// Creates a new `YtDlp` instance with a custom binary path.
