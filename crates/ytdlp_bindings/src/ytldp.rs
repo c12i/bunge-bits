@@ -1,11 +1,8 @@
-use std::env;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::YtDlpError;
-
-const YTDLP_BINARY: &str = env!("YTDLP_BINARY");
 
 /// The main struct for interacting with yt-dlp.
 ///
@@ -43,16 +40,27 @@ impl YtDlp {
     #[tracing::instrument]
     pub fn new_with_cookies(cookies_path: Option<PathBuf>) -> Result<Self, YtDlpError> {
         #[allow(clippy::const_is_empty)]
-        let binary_path = if !YTDLP_BINARY.is_empty() {
-            PathBuf::from(YTDLP_BINARY)
-        } else {
-            which::which("yt-dlp").map_err(|_| YtDlpError::BinaryNotFound("yt-dlp".to_string()))?
-        };
+        let binary_path = Self::resolve_yt_dlp_binary()?;
 
         Ok(YtDlp {
             binary_path,
             cookies_path,
         })
+    }
+
+    /// Dynamically resolve path to yt-dlp binary
+    fn resolve_yt_dlp_binary() -> Result<std::path::PathBuf, YtDlpError> {
+        // use the vendored binary if it exists
+        #[cfg(feature = "yt-dlp-vendored")]
+        {
+            let path = std::path::Path::new(env!("YTDLP_BINARY"));
+            if path.exists() {
+                return Ok(path.to_path_buf());
+            }
+        }
+
+        // fallback to looking it up in PATH
+        which::which("yt-dlp").map_err(|_| YtDlpError::BinaryNotFound("yt-dlp".to_string()))
     }
 
     /// Creates a new `YtDlp` instance with a custom binary path.
@@ -139,6 +147,8 @@ impl YtDlp {
         url: &str,
         output_template: P,
     ) -> Result<(), YtDlpError> {
+        tracing::info!(binary_path=?self.binary_path, "yt-dlp command path");
+
         let output_str = output_template.as_ref().to_str().ok_or_else(|| {
             YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
         })?;
@@ -385,12 +395,23 @@ impl YtDlp {
 mod tests {
     use super::*;
     use glob::glob;
+    use std::env;
     use std::fs;
     use std::io::Read;
     use tempfile::tempdir;
 
+    fn set_yt_dlp_env() {
+        let out_dir = env!("OUT_DIR");
+        let path = format!("{}/yt-dlp", out_dir);
+        unsafe {
+            std::env::set_var("YTDLP_BINARY", path);
+        }
+    }
+
     #[test]
     fn test_new() {
+        set_yt_dlp_env();
+
         let result = YtDlp::new();
         assert!(result.is_ok());
     }
@@ -506,6 +527,8 @@ mod tests {
 
     #[test]
     fn test_missing_cookies_file_fails_gracefully() {
+        set_yt_dlp_env();
+
         let ytdlp =
             YtDlp::new_with_cookies(Some(PathBuf::from("/nonexistent/cookies.txt"))).unwrap();
         let output_path = std::env::temp_dir().join("dummy.%(ext)s");
@@ -516,6 +539,8 @@ mod tests {
 
     #[test]
     fn test_download_invalid_url_fails() {
+        set_yt_dlp_env();
+
         let ytdlp = YtDlp::new().unwrap();
         let output_path = std::env::temp_dir().join("invalid.%(ext)s");
         let result = ytdlp.download_video("https://www.youtube.com/watch?v=invalid", output_path);
