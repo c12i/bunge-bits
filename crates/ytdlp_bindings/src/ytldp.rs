@@ -11,7 +11,7 @@ include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 ///
 /// This struct provides methods to download subtitles and process VTT files.
 /// It can be created with a custom binary path or use a vendored binary.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct YtDlp {
     pub(crate) binary_path: PathBuf,
     pub(crate) cookies_path: Option<PathBuf>,
@@ -53,7 +53,7 @@ impl YtDlp {
         })
     }
 
-    /// Dynamically resolve path to yt-dlp binary - now uses embedded binary
+    /// Dynamically resolve path to yt-dlp binary
     fn resolve_yt_dlp_binary() -> Result<PathBuf, YtDlpError> {
         #[cfg(feature = "yt-dlp-vendored")]
         {
@@ -86,7 +86,7 @@ impl YtDlp {
                 })?;
             }
 
-            // Persist to prevent auto-deletion
+            // persist to prevent auto-deletion
             let path = temp_file.path().to_path_buf();
             temp_file.persist(&path).map_err(|e| {
                 YtDlpError::BinaryNotFound(format!("Failed to persist temp file: {e}"))
