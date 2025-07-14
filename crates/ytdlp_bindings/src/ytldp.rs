@@ -5,6 +5,7 @@ use std::process::Command;
 
 use crate::YtDlpError;
 
+#[cfg(feature = "yt-dlp-vendored")]
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
 /// The main struct for interacting with yt-dlp.
