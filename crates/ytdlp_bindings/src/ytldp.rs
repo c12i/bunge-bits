@@ -43,12 +43,8 @@ impl YtDlp {
     #[cfg(feature = "yt-dlp-vendored")]
     #[tracing::instrument]
     pub fn new_with_cookies(cookies_path: Option<PathBuf>) -> Result<Self, YtDlpError> {
-        let binary_path = Self::resolve_yt_dlp_binary()?;
-
-        assert!(binary_path.exists(), "BINARY DOES NOT EXIST");
-
         Ok(YtDlp {
-            binary_path,
+            binary_path: Self::resolve_yt_dlp_binary()?,
             cookies_path,
         })
     }
