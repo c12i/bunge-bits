@@ -44,7 +44,6 @@ impl YtDlp {
     pub fn new_with_cookies(cookies_path: Option<PathBuf>) -> Result<Self, YtDlpError> {
         let binary_path = Self::resolve_yt_dlp_binary()?;
 
-        println!("{}", binary_path.display());
         assert!(binary_path.exists(), "BINARY DOES NOT EXIST");
 
         Ok(YtDlp {
@@ -142,31 +141,18 @@ impl YtDlp {
     /// # Errors
     ///
     /// Returns `YtDlpError` if the download fails or if the output template is invalid.
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// use ytdlp_bindings::YtDlp;
-    ///
-    /// fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let ytdlp = YtDlp::new()?;
-    ///
-    ///     ytdlp.download_video("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "%(title)s.%(ext)s")?;
-    ///
-    ///     Ok(())
-    /// }
-    /// ```
     #[tracing::instrument(skip(self))]
     pub fn download_video<P: AsRef<Path> + Debug>(
         &self,
         url: &str,
+        format: &str,
         output_template: P,
     ) -> Result<(), YtDlpError> {
         let output_str = output_template.as_ref().to_str().ok_or_else(|| {
             YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
         })?;
 
-        self.run_yt_dlp(&["--output", output_str, url])
+        self.run_yt_dlp(&["-f", format, "--output", output_str, url])
     }
 
     /// Downloads a single audio from the given URL in mp3 format.
@@ -174,6 +160,7 @@ impl YtDlp {
     /// # Arguments
     ///
     /// * `url` - The URL of the video whose audio to download.
+    /// * `format` - The desired audio format (`"mp3"`, `"wav"`, `"flac"`, or `"aac"`).
     /// * `output_template` - A template string for the output filename.
     ///   See yt-dlp documentation for available template options.
     ///
@@ -210,43 +197,75 @@ impl YtDlp {
     /// # Arguments
     ///
     /// * `playlist_url` - The URL of the playlist to download.
+    /// * `format` - The desired video format, e.g `"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]"`
     /// * `output_template` - A template string for the output filenames.
     ///   See yt-dlp documentation for available template options.
     ///
     /// # Errors
     ///
     /// Returns `YtDlpError` if the download fails or if the output template is invalid.
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// use ytdlp_bindings::YtDlp;
-    ///
-    /// fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let ytdlp = YtDlp::new()?;
-    ///
-    ///     ytdlp.download_playlist(
-    ///         "https://www.youtube.com/playlist?list=PLv3TTBr1W_9tppikBxAE_G6qjWdBljBHJ",
-    ///         "playlist_videos/%(playlist_index)s-%(title)s.%(ext)s"
-    ///     )?;
-    ///
-    ///     Ok(())
-    /// }
-    /// ```
     #[tracing::instrument(skip(self))]
     pub fn download_playlist<P: AsRef<Path> + Debug>(
         &self,
         playlist_url: &str,
+        format: &str,
         output_template: P,
     ) -> Result<(), YtDlpError> {
         let output_str = output_template.as_ref().to_str().ok_or_else(|| {
             YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
         })?;
 
-        self.run_yt_dlp(&["--output", output_str, "--yes-playlist", playlist_url])
+        self.run_yt_dlp(&[
+            "-f",
+            format,
+            "--output",
+            output_str,
+            "--yes-playlist",
+            playlist_url,
+        ])
     }
 
-    /// Downloads video or audio aud with custom options.
+    /// Downloads all audio tracks from a YouTube playlist and converts them to the specified format.
+    ///
+    /// This method uses `yt-dlp` to download each entry in the playlist, extract the best available
+    /// audio stream, and convert it to the given audio format using ffmpeg. The final audio files are
+    /// saved using the provided output template, which may include placeholders like `%(title)s` or
+    /// `%(playlist_index)s`.
+    ///
+    /// # Arguments
+    ///
+    /// * `playlist_url` - The full URL of the YouTube playlist to download.
+    /// * `format` - The desired audio format (`"mp3"`, `"wav"`, `"flac"`, or `"aac"`).
+    /// * `output_template` - Path template used to name the output files (e.g., `"downloads/audio/%(title)s.%(ext)s"`).
+    ///
+    /// # Errors
+    ///
+    /// Returns `YtDlpError` if the output path is invalid or if the `yt-dlp` process fails.
+    #[tracing::instrument(skip(self))]
+    pub fn download_audio_playlist<P: AsRef<Path> + Debug>(
+        &self,
+        playlist_url: &str,
+        format: &str,
+        output_template: P,
+    ) -> Result<(), YtDlpError> {
+        let output_str = output_template.as_ref().to_str().ok_or_else(|| {
+            YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
+        })?;
+
+        self.run_yt_dlp(&[
+            "-f",
+            "bestaudio",
+            "-x",
+            "--audio-format",
+            format,
+            "--output",
+            output_str,
+            "--yes-playlist",
+            playlist_url,
+        ])
+    }
+
+    /// Downloads video or audio audio with custom options.
     ///
     /// This method allows you to pass custom yt-dlp options for more advanced use cases.
     ///
@@ -258,20 +277,6 @@ impl YtDlp {
     /// # Errors
     ///
     /// Returns `YtDlpError` if the download fails.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// use ytdlp_bindings::YtDlp;
-    /// fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let ytdlp = YtDlp::new()?;
-    ///     ytdlp.download_with_options(
-    ///         "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    ///         &["--format", "bestaudio/best", "--extract-audio", "--audio-format", "mp3", "--output", "audio.%(ext)s"]
-    ///     )?;
-    ///     Ok(())
-    ///  }
-    /// ```
     #[tracing::instrument(skip(self))]
     pub fn download_with_options(&self, url: &str, options: &[&str]) -> Result<(), YtDlpError> {
         let mut args = options.to_vec();
@@ -442,7 +447,6 @@ impl Drop for YtDlp {
                 && file_name.to_string_lossy().starts_with("yt-dlp")
             {
                 _ = fs::remove_file(&self.binary_path);
-                println!("temp file deleted");
             }
         }
     }
@@ -456,6 +460,9 @@ mod tests {
     use std::fs;
     use std::io::Read;
     use tempfile::tempdir;
+
+    // Don't click watch video...
+    const TEST_VIDEO_URL: &str = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 
     #[test]
     fn test_new() {
@@ -477,8 +484,7 @@ mod tests {
         let ytdlp = YtDlp::new().unwrap();
         let temp_dir = env::temp_dir();
         let output_path = temp_dir.join("%(title)s.%(ext)s");
-        let result =
-            ytdlp.download_auto_sub("https://www.youtube.com/watch?v=p1OqRc15K3o", output_path);
+        let result = ytdlp.download_auto_sub(TEST_VIDEO_URL, output_path);
         assert!(result.is_ok());
     }
 
@@ -488,7 +494,7 @@ mod tests {
         let ytdlp = YtDlp::new().unwrap();
         let temp_dir = env::temp_dir();
         let output_path = temp_dir.join("%(title)s.%(ext)s");
-        let result = ytdlp.download_sub("https://www.youtube.com/watch?v=NJMW2app0VI", output_path);
+        let result = ytdlp.download_sub(TEST_VIDEO_URL, output_path);
         assert!(result.is_ok());
 
         // The sample video explicitly has no non-auto subs, so we expect nothing to have been downloaded
@@ -498,18 +504,13 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Only here for debugging"]
+    #[ignore = "Needs cookies.txt which is not available in CI"]
     fn debug_download_auto_sub_part() -> Result<(), Box<dyn std::error::Error>> {
         let ytdlp = YtDlp::new()?;
         let temp_dir = env::temp_dir();
         let output_pattern = temp_dir.join("%(title)s.%(ext)s");
 
-        println!("Downloading subtitles to: {}", temp_dir.display());
-
-        ytdlp.download_auto_sub(
-            "https://www.youtube.com/watch?v=p1OqRc15K3o",
-            output_pattern,
-        )?;
+        ytdlp.download_auto_sub(TEST_VIDEO_URL, output_pattern)?;
 
         // Use glob to find the downloaded file
         let pattern = temp_dir.join("*.vtt").to_str().unwrap().to_string();
@@ -519,33 +520,33 @@ mod tests {
 
         for path in paths {
             let path = path?;
-            println!("Found subtitle file: {}", path.display());
 
             // Read and print file contents
             let mut file = fs::File::open(&path)?;
             let mut contents = String::new();
             file.read_to_string(&mut contents)?;
 
-            println!("File contents:\n{}", contents);
-
-            // Delete the file after the test
             fs::remove_file(path)?;
         }
 
         Ok(())
     }
 
-    const TEST_VIDEO_URL: &str = "https://www.youtube.com/watch?v=jNQXAC9IVRw";
-
     #[test]
     #[ignore = "Needs cookies.txt which is not available in CI"]
     fn test_download_video() {
-        let ytdlp = YtDlp::new_with_cookies(Some(PathBuf::from("")))
-            .expect("Failed to create YtDlp instance");
+        let ytdlp = YtDlp::new_with_cookies(Some(PathBuf::from(
+            "/Users/collinsmuriuki/coding/bunge-bits/cookies.txt",
+        )))
+        .expect("Failed to create YtDlp instance");
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let output_template = temp_dir.path().join("%(title)s.%(ext)s");
 
-        let result = ytdlp.download_video(TEST_VIDEO_URL, output_template);
+        let result = ytdlp.download_video(
+            TEST_VIDEO_URL,
+            "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]",
+            output_template,
+        );
 
         assert!(
             result.is_ok(),
@@ -586,7 +587,11 @@ mod tests {
     fn test_download_invalid_url_fails() {
         let ytdlp = YtDlp::new().unwrap();
         let output_path = std::env::temp_dir().join("invalid.%(ext)s");
-        let result = ytdlp.download_video("https://www.youtube.com/watch?v=invalid", output_path);
+        let result = ytdlp.download_video(
+            "https://www.youtube.com/watch?v=invalid",
+            "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]",
+            output_path,
+        );
 
         assert!(
             matches!(result, Err(YtDlpError::NonZeroExit { .. })),
