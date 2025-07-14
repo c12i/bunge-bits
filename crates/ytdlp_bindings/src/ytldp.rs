@@ -62,11 +62,11 @@ impl YtDlp {
                 .prefix("yt-dlp")
                 .tempfile()
                 .map_err(|e| {
-                    YtDlpError::BinaryNotFound(format!("Failed to create temp file: {}", e))
+                    YtDlpError::BinaryNotFound(format!("Failed to create temp file: {e}"))
                 })?;
-            temp_file.write_all(YTDLP_BINARY).map_err(|e| {
-                YtDlpError::BinaryNotFound(format!("Failed to write binary: {}", e))
-            })?;
+            temp_file
+                .write_all(YTDLP_BINARY)
+                .map_err(|e| YtDlpError::BinaryNotFound(format!("Failed to write binary: {e}")))?;
 
             // make bin executable on unix
             #[cfg(unix)]
@@ -77,19 +77,19 @@ impl YtDlp {
                     .as_file()
                     .metadata()
                     .map_err(|e| {
-                        YtDlpError::BinaryNotFound(format!("Failed to get metadata: {}", e))
+                        YtDlpError::BinaryNotFound(format!("Failed to get metadata: {e}"))
                     })?
                     .permissions();
                 perms.set_mode(0o755);
                 std::fs::set_permissions(temp_file.path(), perms).map_err(|e| {
-                    YtDlpError::BinaryNotFound(format!("Failed to set permissions: {}", e))
+                    YtDlpError::BinaryNotFound(format!("Failed to set permissions: {e}"))
                 })?;
             }
 
             // Persist to prevent auto-deletion
             let path = temp_file.path().to_path_buf();
             temp_file.persist(&path).map_err(|e| {
-                YtDlpError::BinaryNotFound(format!("Failed to persist temp file: {}", e))
+                YtDlpError::BinaryNotFound(format!("Failed to persist temp file: {e}"))
             })?;
 
             Ok(path)
