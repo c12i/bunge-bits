@@ -32,8 +32,6 @@ RUN apt-get update && apt-get install -y \
 RUN curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz \
   | tar xJ --strip-components=1 -C /usr/local/bin --wildcards '*/ffmpeg' '*/ffprobe'
 COPY --from=builder /app/target/release/stream-pulse-cron /usr/local/bin/stream-pulse-cron
-# copy vendored yt-dlp binary from build output
-COPY --from=builder /app/target/release/build/ytdlp_bindings-*/out/yt-dlp /usr/local/bin/yt-dlp
 WORKDIR /app
 ENV OPENAI_API_KEY= \
   DATABASE_URL= \
