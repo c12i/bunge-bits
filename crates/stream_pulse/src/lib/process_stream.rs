@@ -125,8 +125,8 @@ fn handle_stream_audio(
 
     // construct all necessary paths
     let base_name = &stream.video_id;
-    let audio_output_template = audio_download_path.join(format!("{}.%(ext)s", base_name));
-    let audio_wav_path = audio_download_path.join(format!("{}.wav", base_name));
+    let audio_output_template = audio_download_path.join(format!("{base_name}.%(ext)s"));
+    let audio_wav_path = audio_download_path.join(format!("{base_name}.wav"));
 
     // intermediate cleaned file paths
     let denoised_path = audio_download_path.join(format!("{base_name}_denoised.wav"));
