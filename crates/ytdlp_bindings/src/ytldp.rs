@@ -184,6 +184,7 @@ impl YtDlp {
     pub fn download_audio<P: AsRef<Path> + Debug>(
         &self,
         url: &str,
+        format: &str,
         output_template: P,
     ) -> Result<(), YtDlpError> {
         tracing::info!(binary_path=?self.binary_path, "yt-dlp command path");
@@ -197,7 +198,7 @@ impl YtDlp {
             "bestaudio",
             "-x",
             "--audio-format",
-            "mp3",
+            format,
             "--output",
             output_str,
             url,

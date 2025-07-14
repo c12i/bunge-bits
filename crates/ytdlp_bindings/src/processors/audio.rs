@@ -47,12 +47,29 @@ impl AudioProcessor for YtDlp {
         segment_time_s: u16,
         output_template: impl AsRef<Path>,
     ) -> Result<(), YtDlpError> {
-        let input_str = file_input_path.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidPath(file_input_path.as_ref().display().to_string())
-        })?;
-        let output_str = output_template.as_ref().to_str().ok_or_else(|| {
-            YtDlpError::InvalidPath(output_template.as_ref().display().to_string())
-        })?;
+        let input_path = file_input_path.as_ref();
+        let output_path = output_template.as_ref();
+
+        let input_str = input_path
+            .to_str()
+            .ok_or_else(|| YtDlpError::InvalidPath(input_path.display().to_string()))?;
+        let output_str = output_path
+            .to_str()
+            .ok_or_else(|| YtDlpError::InvalidPath(output_path.display().to_string()))?;
+
+        let ext = output_path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase();
+
+        let codec = match ext.as_str() {
+            "wav" => "pcm_s16le",
+            "mp3" => "libmp3lame",
+            "flac" => "flac",
+            "aac" => "aac",
+            _ => return Err(YtDlpError::UnsupportedFormat(ext)),
+        };
 
         self.run_ffmpeg(&[
             "-i",
@@ -63,12 +80,10 @@ impl AudioProcessor for YtDlp {
             &segment_time_s.to_string(),
             "-ac",
             "1",
-            "-b:a",
-            "64k",
             "-ar",
             "16000",
             "-c:a",
-            "libmp3lame",
+            codec,
             output_str,
         ])
     }
@@ -87,17 +102,10 @@ impl AudioProcessor for YtDlp {
             .to_str()
             .ok_or_else(|| YtDlpError::InvalidPath(output_path.as_ref().display().to_string()))?;
 
+        let codec = infer_codec(output_path.as_ref())?;
+
         self.run_ffmpeg(&[
-            "-i",
-            input_str,
-            "-af",
-            "loudnorm",
-            "-ar",
-            "16000",
-            "-ac",
-            "1",
-            "-c:a",
-            "libmp3lame",
+            "-i", input_str, "-af", "loudnorm", "-ar", "16000", "-ac", "1", "-c:a", codec,
             output_str,
         ])
     }
@@ -116,18 +124,10 @@ impl AudioProcessor for YtDlp {
             .to_str()
             .ok_or_else(|| YtDlpError::InvalidPath(output_path.as_ref().display().to_string()))?;
 
+        let codec = infer_codec(output_path.as_ref())?;
+
         self.run_ffmpeg(&[
-            "-i",
-            input_str,
-            "-af",
-            "afftdn",
-            "-ar",
-            "16000",
-            "-ac",
-            "1",
-            "-c:a",
-            "libmp3lame",
-            output_str,
+            "-i", input_str, "-af", "afftdn", "-ar", "16000", "-ac", "1", "-c:a", codec, output_str,
         ])
     }
 
@@ -145,6 +145,8 @@ impl AudioProcessor for YtDlp {
             .to_str()
             .ok_or_else(|| YtDlpError::InvalidPath(output_path.as_ref().display().to_string()))?;
 
+        let codec = infer_codec(output_path.as_ref())?;
+
         self.run_ffmpeg(&[
             "-i",
             input_str,
@@ -155,8 +157,24 @@ impl AudioProcessor for YtDlp {
             "-ac",
             "1",
             "-c:a",
-            "libmp3lame",
+            codec,
             output_str,
         ])
+    }
+}
+
+fn infer_codec(path: &Path) -> Result<&'static str, YtDlpError> {
+    match path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "wav" => Ok("pcm_s16le"),
+        "mp3" => Ok("libmp3lame"),
+        "flac" => Ok("flac"),
+        "aac" => Ok("aac"),
+        ext => Err(YtDlpError::UnsupportedFormat(ext.to_string())),
     }
 }
