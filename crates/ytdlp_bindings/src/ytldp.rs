@@ -1,14 +1,17 @@
 use std::fmt::Debug;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::YtDlpError;
 
+include!(concat!(env!("OUT_DIR"), "/generated.rs"));
+
 /// The main struct for interacting with yt-dlp.
 ///
 /// This struct provides methods to download subtitles and process VTT files.
 /// It can be created with a custom binary path or use a vendored binary.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct YtDlp {
     pub(crate) binary_path: PathBuf,
     pub(crate) cookies_path: Option<PathBuf>,
@@ -39,8 +42,10 @@ impl YtDlp {
     #[cfg(feature = "yt-dlp-vendored")]
     #[tracing::instrument]
     pub fn new_with_cookies(cookies_path: Option<PathBuf>) -> Result<Self, YtDlpError> {
-        #[allow(clippy::const_is_empty)]
         let binary_path = Self::resolve_yt_dlp_binary()?;
+
+        println!("{}", binary_path.display());
+        assert!(binary_path.exists(), "BINARY DOES NOT EXIST");
 
         Ok(YtDlp {
             binary_path,
@@ -48,19 +53,53 @@ impl YtDlp {
         })
     }
 
-    /// Dynamically resolve path to yt-dlp binary
-    fn resolve_yt_dlp_binary() -> Result<std::path::PathBuf, YtDlpError> {
-        // use the vendored binary if it exists
+    /// Dynamically resolve path to yt-dlp binary - now uses embedded binary
+    fn resolve_yt_dlp_binary() -> Result<PathBuf, YtDlpError> {
         #[cfg(feature = "yt-dlp-vendored")]
         {
-            let path = std::path::Path::new(env!("YTDLP_BINARY"));
-            if path.exists() {
-                return Ok(path.to_path_buf());
+            // create a temp file for the embedded bin
+            let mut temp_file = tempfile::Builder::new()
+                .prefix("yt-dlp")
+                .tempfile()
+                .map_err(|e| {
+                    YtDlpError::BinaryNotFound(format!("Failed to create temp file: {}", e))
+                })?;
+            temp_file.write_all(YTDLP_BINARY).map_err(|e| {
+                YtDlpError::BinaryNotFound(format!("Failed to write binary: {}", e))
+            })?;
+
+            // make bin executable on unix
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+
+                let mut perms = temp_file
+                    .as_file()
+                    .metadata()
+                    .map_err(|e| {
+                        YtDlpError::BinaryNotFound(format!("Failed to get metadata: {}", e))
+                    })?
+                    .permissions();
+                perms.set_mode(0o755);
+                std::fs::set_permissions(temp_file.path(), perms).map_err(|e| {
+                    YtDlpError::BinaryNotFound(format!("Failed to set permissions: {}", e))
+                })?;
             }
+
+            // Persist to prevent auto-deletion
+            let path = temp_file.path().to_path_buf();
+            temp_file.persist(&path).map_err(|e| {
+                YtDlpError::BinaryNotFound(format!("Failed to persist temp file: {}", e))
+            })?;
+
+            Ok(path)
         }
 
-        // fallback to looking it up in PATH
-        which::which("yt-dlp").map_err(|_| YtDlpError::BinaryNotFound("yt-dlp".to_string()))
+        #[cfg(not(feature = "yt-dlp-vendored"))]
+        Ok((
+            which::which("yt-dlp").map_err(|_| YtDlpError::BinaryNotFound("yt-dlp".to_string()))?,
+            None,
+        ))
     }
 
     /// Creates a new `YtDlp` instance with a custom binary path.
@@ -391,6 +430,23 @@ impl YtDlp {
     }
 }
 
+#[cfg(all(test, feature = "yt-dlp-vendored"))]
+impl Drop for YtDlp {
+    fn drop(&mut self) {
+        use std::fs;
+
+        if let Some(file_name) = self.binary_path.file_name() {
+            let tmpdir = std::env::temp_dir();
+            if self.binary_path.starts_with(&tmpdir)
+                && file_name.to_string_lossy().starts_with("yt-dlp")
+            {
+                _ = fs::remove_file(&self.binary_path);
+                println!("temp file deleted");
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -400,18 +456,8 @@ mod tests {
     use std::io::Read;
     use tempfile::tempdir;
 
-    fn set_yt_dlp_env() {
-        let out_dir = env!("OUT_DIR");
-        let path = format!("{}/yt-dlp", out_dir);
-        unsafe {
-            std::env::set_var("YTDLP_BINARY", path);
-        }
-    }
-
     #[test]
     fn test_new() {
-        set_yt_dlp_env();
-
         let result = YtDlp::new();
         assert!(result.is_ok());
     }
@@ -425,7 +471,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "TODO: Passes locally but fails in CI"]
+    #[ignore = "Needs cookies.txt which is not available in CI"]
     fn test_download_auto_sub() {
         let ytdlp = YtDlp::new().unwrap();
         let temp_dir = env::temp_dir();
@@ -527,8 +573,6 @@ mod tests {
 
     #[test]
     fn test_missing_cookies_file_fails_gracefully() {
-        set_yt_dlp_env();
-
         let ytdlp =
             YtDlp::new_with_cookies(Some(PathBuf::from("/nonexistent/cookies.txt"))).unwrap();
         let output_path = std::env::temp_dir().join("dummy.%(ext)s");
@@ -539,8 +583,6 @@ mod tests {
 
     #[test]
     fn test_download_invalid_url_fails() {
-        set_yt_dlp_env();
-
         let ytdlp = YtDlp::new().unwrap();
         let output_path = std::env::temp_dir().join("invalid.%(ext)s");
         let result = ytdlp.download_video("https://www.youtube.com/watch?v=invalid", output_path);

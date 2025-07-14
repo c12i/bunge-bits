@@ -1,6 +1,6 @@
 use std::env;
 use std::fs::File;
-use std::io::copy;
+use std::io::{copy, Write};
 use std::path::Path;
 
 /// The yt-dlp version based off their github releases
@@ -24,29 +24,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create an output directory for the binary
     let out_dir = env::var("OUT_DIR")?;
-    let dest_path = Path::new(&out_dir).join("yt-dlp");
+    let binary_path = Path::new(&out_dir).join("yt-dlp");
 
     // Download the file
-    println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-env-changed=TARGET");
     let mut response = reqwest::blocking::get(format!(
         "https://github.com/yt-dlp/yt-dlp/releases/download/{YTDLP_RELEASE}/{filename}"
     ))?;
-    let mut dest = File::create(&dest_path)?;
+    let mut dest = File::create(&binary_path)?;
     copy(&mut response, &mut dest)?;
 
     // Make the file executable on Unix-like systems
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let mut perms = dest_path.metadata()?.permissions();
+        let mut perms = binary_path.metadata()?.permissions();
         perms.set_mode(0o755);
-        std::fs::set_permissions(&dest_path, perms)?;
+        std::fs::set_permissions(&binary_path, perms)?;
         println!("Set execute permissions on the binary");
     }
 
-    // Tell Cargo where to find the downloaded binary
-    println!("cargo:rustc-env=YTDLP_BINARY={}", dest_path.display());
+    // Generate the Rust module file
+    let generated_rs_path = Path::new(&out_dir).join("generated.rs");
+    let mut rust_mod = File::create(&generated_rs_path)?;
 
+    // Write the include_bytes! with relative path from OUT_DIR
+    writeln!(
+        rust_mod,
+        "pub const YTDLP_BINARY: &[u8] = include_bytes!(\"yt-dlp\");"
+    )?;
+
+    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-env-changed=TARGET");
     Ok(())
 }
