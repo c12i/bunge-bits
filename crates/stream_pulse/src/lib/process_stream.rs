@@ -123,31 +123,47 @@ fn handle_stream_audio(
 ) -> anyhow::Result<()> {
     let youtube_stream = format!("https://youtube.com/watch?v={}", stream.video_id);
 
-    // Set up the output path template with .%(ext)s for yt-dlp
-    let audio_output_template = audio_download_path.join(format!("{}.%(ext)s", stream.video_id));
-    let audio_mp3_path = audio_download_path.join(format!("{}.mp3", stream.video_id));
-    let chunked_audio_path = PathBuf::from(format!("{WORKDIR}/audio/{}", stream.video_id));
+    // construct all necessary paths
+    let base_name = &stream.video_id;
+    let audio_output_template = audio_download_path.join(format!("{base_name}.%(ext)s"));
+    let audio_wav_path = audio_download_path.join(format!("{base_name}.wav"));
 
-    // Skip download if .mp3 already exists
-    if !audio_mp3_path.exists() {
+    // intermediate cleaned file paths
+    let denoised_path = audio_download_path.join(format!("{base_name}_denoised.wav"));
+    let normalized_path = audio_download_path.join(format!("{base_name}_normalized.wav"));
+    let trimmed_path = audio_download_path.join(format!("{base_name}_trimmed.wav"));
+
+    let chunked_audio_path = PathBuf::from(format!("{WORKDIR}/audio/{base_name}"));
+
+    // download audio if needed
+    if !audio_wav_path.exists() {
         if let Err(e) = ytdlp
-            .download_audio(&youtube_stream, &audio_output_template)
+            .download_audio(&youtube_stream, "wav", &audio_output_template)
             .inspect_err(|e| tracing::error!(error = ?e, "Failed to download audio"))
         {
             bail!("Failed to download audio: {:?}", e);
         }
 
-        if !audio_mp3_path.exists() {
+        if !audio_wav_path.exists() {
             bail!(
                 "yt-dlp did not produce expected file: {}",
-                audio_mp3_path.display()
+                audio_wav_path.display()
             );
         }
     } else {
-        tracing::debug!("Audio already exists at {:?}", audio_mp3_path);
+        tracing::debug!("Audio already exists at {:?}", audio_wav_path);
     }
 
-    // Skip splitting if chunk files already exist
+    // perform cleanup if final trimmed audio does not exist
+    if !trimmed_path.exists() {
+        ytdlp.denoise_audio(&audio_wav_path, &denoised_path)?;
+        ytdlp.normalize_volume(&denoised_path, &normalized_path)?;
+        ytdlp.trim_silence(&normalized_path, &trimmed_path)?;
+    } else {
+        tracing::debug!("Cleaned audio already exists at {:?}", trimmed_path);
+    }
+
+    // split if chunks not already present
     let chunk_exists = std::fs::read_dir(&chunked_audio_path)
         .map(|mut entries| entries.any(|e| e.is_ok()))
         .unwrap_or(false);
@@ -155,9 +171,9 @@ fn handle_stream_audio(
     if !chunk_exists {
         create_dir_all(&chunked_audio_path)?;
         ytdlp.split_audio_to_chunks(
-            &audio_mp3_path,
-            900,
-            chunked_audio_path.join(format!("{}_%03d.mp3", stream.video_id)),
+            &trimmed_path,
+            900, // 15 * 60 seconds
+            chunked_audio_path.join(format!("{base_name}_%03d.wav")),
         )?;
     } else {
         tracing::debug!("Chunks already exist at {:?}", chunked_audio_path);

@@ -18,4 +18,6 @@ pub enum YtDlpError {
     JsonParseError(#[from] serde_json::Error),
     #[error("Invalid input path: {0}")]
     InvalidInputPath(String),
+    #[error("Unsupported file format: {0}")]
+    UnsupportedFormat(String),
 }
