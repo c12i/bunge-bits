@@ -92,10 +92,7 @@ impl YtDlp {
         }
 
         #[cfg(not(feature = "yt-dlp-vendored"))]
-        Ok((
-            which::which("yt-dlp").map_err(|_| YtDlpError::BinaryNotFound("yt-dlp".to_string()))?,
-            None,
-        ))
+        which::which("yt-dlp").map_err(|_| YtDlpError::BinaryNotFound("yt-dlp".to_string()))
     }
 
     /// Creates a new `YtDlp` instance with a custom binary path.
