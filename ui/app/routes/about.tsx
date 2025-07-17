@@ -2,6 +2,8 @@ import { MetaFunction } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { format } from "date-fns";
 
+import { useHasHydrated } from "~/lib/hooks";
+
 export const meta: MetaFunction = () => [
   { title: "About | Bunge Bits" },
   { name: "description", content: "Learn more about the Bunge Bits project" },
@@ -45,6 +47,15 @@ export async function loader() {
 
 export default function AboutPage() {
   const { healthy, next_tick } = useLoaderData<typeof loader>();
+  const hasHydrated = useHasHydrated();
+
+  if (!hasHydrated) {
+    return (
+      <div className="flex flex-col items-center py-12">
+        <div className="w-6 h-6 border-4 border-destructive border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12 space-y-6">
@@ -58,8 +69,8 @@ export default function AboutPage() {
       </p>
 
       <h2 className="text-xl font-semibold mt-6">How It Works</h2>
-      <p>
-        At the core of Bunge Bits is a fully automated pipeline that:
+      <div>
+        <p>At the core of Bunge Bits is a fully automated pipeline that:</p>
         <ol className="list-decimal list-inside mt-2 space-y-1">
           <li>
             Periodically scrapes archived livestreams from the official Parliament of
@@ -68,7 +79,7 @@ export default function AboutPage() {
           <li>Downloads and transcribes audio using OpenAI Whisper</li>
           <li>Generates structured summaries with GPT-4o</li>
         </ol>
-      </p>
+      </div>
 
       <h2 className="text-xl font-semibold mt-6">Tech Stack</h2>
       <p>

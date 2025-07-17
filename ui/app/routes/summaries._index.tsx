@@ -11,6 +11,7 @@ import { Calendar, ChevronLeft, ChevronRight, Clock, Search } from "lucide-react
 import { useEffect, useRef, useState } from "react";
 import removeMarkdown from "remove-markdown";
 
+import SummariesSkeleton from "~/components/list-page-skeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -21,7 +22,7 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
-import { useDebounce } from "~/lib/hooks";
+import { useDebounce, useHasHydrated } from "~/lib/hooks";
 import { highlightText } from "~/lib/text-highlight";
 import { formatDate, formatDuration } from "~/lib/utils";
 
@@ -136,6 +137,12 @@ export default function Index() {
 
   const { inputValue, handleInputChange, handleClearSearch } = useSearch();
   const queryTerms = query?.toLowerCase().trim() || "";
+
+  const hasHydrated = useHasHydrated();
+
+  if (!hasHydrated) {
+    return <SummariesSkeleton />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
