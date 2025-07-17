@@ -7,7 +7,7 @@ import {
   useSearchParams,
   useSubmit,
 } from "@remix-run/react";
-import { Calendar, Clock, Search, ChevronRight, ChevronLeft } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Clock, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import removeMarkdown from "remove-markdown";
 
