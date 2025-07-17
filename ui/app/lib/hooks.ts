@@ -15,3 +15,13 @@ export function useDebounce(value: string, delay: number) {
 
   return debouncedValue;
 }
+
+export function useHasHydrated() {
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
+
+  return hasHydrated;
+}
