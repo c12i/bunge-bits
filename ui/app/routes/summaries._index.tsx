@@ -8,7 +8,7 @@ import {
   useSubmit,
 } from "@remix-run/react";
 import { Calendar, Clock, Search, ChevronRight, ChevronLeft } from "lucide-react";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import removeMarkdown from "remove-markdown";
 
 import { Badge } from "~/components/ui/badge";
