@@ -137,24 +137,6 @@ export default function Index() {
   const { inputValue, handleInputChange, handleClearSearch } = useSearch();
   const queryTerms = query?.toLowerCase().trim() || "";
 
-  if (!streams.length) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-500 text-lg">
-          No summaries found for "{query ? query : "this page"}".
-        </p>
-        {query && (
-          <button
-            onClick={handleClearSearch}
-            className="text-red-800 hover:underline mt-2 inline-block cursor-pointer"
-          >
-            View all summaries
-          </button>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
       <main className="container mx-auto px-4 py-8 max-w-6xl">
@@ -203,7 +185,6 @@ export default function Index() {
           )}
         </div>
 
-        {/* Streams Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {streams.map((stream: any) => (
             <Card
@@ -260,7 +241,23 @@ export default function Index() {
           ))}
         </div>
 
-        <Pagination currentPage={page} totalPages={pageCount} />
+        {streams.length === 0 && (
+          <div className="text-center">
+            <p className="text-gray-500 text-lg">
+              No summaries found for "{query ? query : "this page"}".
+            </p>
+            {query && (
+              <button
+                onClick={handleClearSearch}
+                className="text-red-800 hover:underline mt-2 inline-block cursor-pointer"
+              >
+                View all summaries
+              </button>
+            )}
+          </div>
+        )}
+
+        {streams.length > 0 && <Pagination currentPage={page} totalPages={pageCount} />}
       </main>
     </div>
   );
