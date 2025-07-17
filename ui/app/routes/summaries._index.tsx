@@ -7,7 +7,7 @@ import {
   useSearchParams,
   useSubmit,
 } from "@remix-run/react";
-import { Calendar, Clock, Search } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Clock, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import removeMarkdown from "remove-markdown";
 
@@ -185,7 +185,6 @@ export default function Index() {
           )}
         </div>
 
-        {/* Streams Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {streams.map((stream: any) => (
             <Card
@@ -225,16 +224,7 @@ export default function Index() {
               </CardHeader>
               <CardContent className="pt-0">
                 <CardDescription className="line-clamp-3 mb-4 text-sm leading-relaxed">
-                  {highlightText(
-                    removeMarkdown(stream.summary_md.split("\n").slice(1).join("\n"))
-                      .replace(/\\n/g, " ")
-                      .replace(/\s+/g, " ") ||
-                      removeMarkdown(stream.summary_md)
-                        .replace(/\\n/g, " ")
-                        .replace(/\s+/g, " ") ||
-                      "No Preview Available",
-                    queryTerms
-                  )}
+                  {highlightText(getPreviewText(stream.summary_md), queryTerms)}
                 </CardDescription>
                 <Link
                   to={{
@@ -251,72 +241,118 @@ export default function Index() {
           ))}
         </div>
 
-        {/* Pagination */}
-        {pageCount > 1 && (
-          <div className="flex justify-center mt-8 gap-2">
-            <Link
-              to={`?${new URLSearchParams({
-                ...Object.fromEntries(searchParams),
-                page: String(page - 1),
-              })}`}
-            >
-              <Button variant="outline" disabled={page === 1}>
-                Prev
-              </Button>
-            </Link>
-
-            {Array.from({ length: pageCount }).map((_, i) => {
-              const newParams = new URLSearchParams({
-                ...Object.fromEntries(searchParams),
-                page: String(i + 1),
-              });
-              return (
-                <Link key={i} to={`?${newParams.toString()}`}>
-                  <Button
-                    variant={page === i + 1 ? "default" : "outline"}
-                    className="w-10 px-0"
-                  >
-                    {i + 1}
-                  </Button>
-                </Link>
-              );
-            })}
-
-            <Link
-              to={`?${new URLSearchParams({
-                ...Object.fromEntries(searchParams),
-                page: String(page + 1),
-              })}`}
-            >
-              <Button variant="outline" disabled={page === pageCount}>
-                Next
-              </Button>
-            </Link>
+        {streams.length === 0 && (
+          <div className="text-center">
+            <p className="text-gray-500 text-lg">
+              No summaries found for "{query ? query : "this page"}".
+            </p>
+            {query && (
+              <button
+                onClick={handleClearSearch}
+                className="text-red-800 hover:underline mt-2 inline-block cursor-pointer"
+              >
+                View all summaries
+              </button>
+            )}
           </div>
         )}
 
-        {/* Empty States */}
-        {streams.length === 0 && query && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No summaries found for "{query}".</p>
-            <button
-              onClick={handleClearSearch}
-              className="text-red-800 hover:underline mt-2 inline-block cursor-pointer"
-            >
-              View all summaries
-            </button>
-          </div>
-        )}
-
-        {streams.length === 0 && !query && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No summaries found for this page.</p>
-          </div>
-        )}
+        {streams.length > 0 && <Pagination currentPage={page} totalPages={pageCount} />}
       </main>
     </div>
   );
 }
+
+export function Pagination({ currentPage, totalPages }: PaginationProps) {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const pathname = location.pathname;
+
+  const [page, setPage] = useState(currentPage);
+  const [isOverridden, setIsOverridden] = useState(false);
+
+  useEffect(() => {
+    setPage(currentPage);
+    setIsOverridden(false);
+  }, [currentPage]);
+
+  const goToPage = (targetPage: number) => {
+    const validPage = Math.max(1, Math.min(targetPage, totalPages));
+    const newParams = new URLSearchParams({
+      ...Object.fromEntries(searchParams),
+      page: String(validPage),
+    });
+    window.location.href = `${pathname}?${newParams.toString()}`;
+  };
+
+  return (
+    <div className="flex justify-center mt-8 items-center gap-2">
+      {currentPage > 1 && (
+        <Button
+          variant="outline"
+          size="icon"
+          disabled={currentPage === 1}
+          onClick={() => {
+            if (isOverridden) {
+              goToPage(page);
+            } else {
+              goToPage(currentPage - 1);
+            }
+          }}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+      )}
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          goToPage(page);
+        }}
+        className="flex items-center gap-2"
+      >
+        <input
+          name="page"
+          type="number"
+          min={1}
+          max={totalPages}
+          value={page}
+          onChange={(e) => {
+            setPage(Number(e.target.value));
+            setIsOverridden(true);
+          }}
+          className="w-10 h-9 text-center border rounded-md px-2 text-sm
+               [appearance:textfield]
+               [&::-webkit-outer-spin-button]:appearance-none
+               [&::-webkit-inner-spin-button]:appearance-none"
+        />
+        <span className="text-sm text-gray-700">of {totalPages}</span>
+      </form>
+
+      {currentPage < totalPages && (
+        <Button
+          variant="outline"
+          size="icon"
+          disabled={currentPage === totalPages}
+          onClick={() => {
+            if (isOverridden) {
+              goToPage(page);
+            } else {
+              goToPage(currentPage + 1);
+            }
+          }}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+type PaginationProps = {
+  currentPage: number;
+  totalPages: number;
+};
 
 function useSearch() {
   const [searchParams] = useSearchParams();
@@ -364,4 +400,14 @@ function useSearch() {
     handleInputChange,
     handleClearSearch,
   };
+}
+
+function getPreviewText(summaryMd: string): string {
+  const bodyOnly = summaryMd.split("\n").slice(1).join("\n").trim();
+  const cleaned = removeMarkdown(bodyOnly || summaryMd)
+    .replace(/\\n/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return cleaned || "No Preview Available";
 }
