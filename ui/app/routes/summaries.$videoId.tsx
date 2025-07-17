@@ -3,8 +3,8 @@ import { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { Link, useLoaderData, useLocation } from "@remix-run/react";
 import { ArrowLeft, Calendar, Clock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import SummarySkeleton from "~/components/detail-page-skeleton";
 
+import SummarySkeleton from "~/components/detail-page-skeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";

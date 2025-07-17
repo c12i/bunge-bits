@@ -10,8 +10,8 @@ import {
 import { Calendar, ChevronLeft, ChevronRight, Clock, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import removeMarkdown from "remove-markdown";
-import SummariesSkeleton from "~/components/list-page-skeleton";
 
+import SummariesSkeleton from "~/components/list-page-skeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {

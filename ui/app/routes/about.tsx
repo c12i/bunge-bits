@@ -1,6 +1,7 @@
 import { MetaFunction } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { format } from "date-fns";
+
 import { useHasHydrated } from "~/lib/hooks";
 
 export const meta: MetaFunction = () => [
