@@ -41,7 +41,7 @@ impl YtDlp {
     ///
     /// Returns [`YtDlpError::BinaryNotFound`] if the binary is not found.
     #[cfg(feature = "yt-dlp-vendored")]
-    #[tracing::instrument]
+    #[cfg_attr(feature = "tracing", tracing::instrument)]
     pub fn new_with_cookies(cookies_path: Option<PathBuf>) -> Result<Self, YtDlpError> {
         Ok(YtDlp {
             binary_path: Self::resolve_yt_dlp_binary()?,
@@ -135,7 +135,7 @@ impl YtDlp {
     /// # Errors
     ///
     /// Returns `YtDlpError` if the download fails or if the output template is invalid.
-    #[tracing::instrument(skip(self))]
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub fn download_video<P: AsRef<Path> + Debug>(
         &self,
         url: &str,
@@ -161,7 +161,7 @@ impl YtDlp {
     /// # Errors
     ///
     /// Returns `YtDlpError` if the download fails or if the output template is invalid.
-    #[tracing::instrument(skip(self))]
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub fn download_audio<P: AsRef<Path> + Debug>(
         &self,
         url: &str,
@@ -198,7 +198,7 @@ impl YtDlp {
     /// # Errors
     ///
     /// Returns `YtDlpError` if the download fails or if the output template is invalid.
-    #[tracing::instrument(skip(self))]
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub fn download_playlist<P: AsRef<Path> + Debug>(
         &self,
         playlist_url: &str,
@@ -235,7 +235,7 @@ impl YtDlp {
     /// # Errors
     ///
     /// Returns `YtDlpError` if the output path is invalid or if the `yt-dlp` process fails.
-    #[tracing::instrument(skip(self))]
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub fn download_audio_playlist<P: AsRef<Path> + Debug>(
         &self,
         playlist_url: &str,
@@ -271,7 +271,7 @@ impl YtDlp {
     /// # Errors
     ///
     /// Returns `YtDlpError` if the download fails.
-    #[tracing::instrument(skip(self))]
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub fn download_with_options(&self, url: &str, options: &[&str]) -> Result<(), YtDlpError> {
         let mut args = options.to_vec();
         args.push(url);
@@ -288,7 +288,7 @@ impl YtDlp {
     /// # Errors
     ///
     /// Returns `YtDlpError` if the download fails or if the output path is invalid.
-    #[tracing::instrument(skip(self))]
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub fn download_auto_sub<P: AsRef<Path> + Debug>(
         &self,
         url: &str,
@@ -317,7 +317,7 @@ impl YtDlp {
     /// # Errors
     ///
     /// Returns `YtDlpError` if the download fails or if the output path is invalid.
-    #[tracing::instrument(skip(self))]
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub fn download_sub<P: AsRef<Path> + Debug>(
         &self,
         url: &str,
@@ -340,7 +340,7 @@ impl YtDlp {
     /// Runs the `yt-dlp` command with optional `--cookies` support.
     ///
     /// This method appends the cookies argument to the command if `cookies_path` is set.
-    #[tracing::instrument(skip(self))]
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub(crate) fn run_yt_dlp(&self, args: &[&str]) -> Result<(), YtDlpError> {
         let max_retries = 3;
         let retry_delay = std::time::Duration::from_secs(2);
@@ -411,7 +411,7 @@ impl YtDlp {
     }
 
     #[cfg(any(feature = "audio-processing", feature = "video-processing"))]
-    #[tracing::instrument(skip(self))]
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip(self)))]
     pub(crate) fn run_ffmpeg(&self, args: &[&str]) -> Result<(), YtDlpError> {
         if which::which("ffmpeg").is_err() {
             return Err(YtDlpError::BinaryNotFound("ffmpeg".to_string()));
