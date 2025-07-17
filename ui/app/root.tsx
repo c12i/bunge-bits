@@ -2,7 +2,6 @@ import "./tailwind.css";
 
 import type { LinksFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import {
-  isRouteErrorResponse,
   Links,
   Meta,
   Outlet,
@@ -12,9 +11,9 @@ import {
   useRouteError,
 } from "@remix-run/react";
 
+import ErrorPage from "./components/error-page";
 import Footer from "./components/footer";
 import Header from "./components/header";
-import ErrorPage from "./components/error-page";
 
 export const links: LinksFunction = () => [
   {
