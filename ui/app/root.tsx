@@ -2,16 +2,19 @@ import "./tailwind.css";
 
 import type { LinksFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import {
+  isRouteErrorResponse,
   Links,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
   useLoaderData,
+  useRouteError,
 } from "@remix-run/react";
 
 import Footer from "./components/footer";
 import Header from "./components/header";
+import ErrorPage from "./components/error-page";
 
 export const links: LinksFunction = () => [
   {
@@ -23,10 +26,10 @@ export const links: LinksFunction = () => [
 ];
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const origin = new URL(request.url).origin;
+  const url = new URL(request.url);
 
   return Response.json({
-    origin,
+    origin: url?.origin || "https://bungebits.ke",
     env: {
       PLAUSIBLE_BASE_URL: process.env.PUBLIC_PLAUSIBLE_BASE_URL,
       PLAUSIBLE_DOMAIN: process.env.PUBLIC_PLAUSIBLE_DOMAIN,
@@ -35,7 +38,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
-  const origin = data!.origin;
+  const origin = data?.origin;
 
   return [
     { charset: "utf-8" },
@@ -71,7 +74,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 };
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { env } = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
   return (
     <html lang="en">
       <head>
@@ -86,18 +89,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
         <ScrollRestoration />
         <Scripts />
-        {env?.PLAUSIBLE_BASE_URL &&
-          env?.PLAUSIBLE_DOMAIN &&
+        {data !== undefined &&
+          data.env?.PLAUSIBLE_BASE_URL &&
+          data.env?.PLAUSIBLE_DOMAIN &&
           process.env.NODE_ENV === "production" && (
             <script
               defer
-              data-domain={env.PLAUSIBLE_DOMAIN}
-              src={`${env.PLAUSIBLE_BASE_URL}/js/script.js`}
+              data-domain={data.env.PLAUSIBLE_DOMAIN}
+              src={`${data.env.PLAUSIBLE_BASE_URL}/js/script.js`}
             ></script>
           )}
       </body>
     </html>
   );
+}
+
+export function ErrorBoundary() {
+  return <ErrorPage error={useRouteError()} />;
 }
 
 export default function App() {
