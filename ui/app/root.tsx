@@ -14,6 +14,7 @@ import {
 import ErrorPage from "./components/error-page";
 import Footer from "./components/footer";
 import Header from "./components/header";
+import { NavigationProgress } from "./components/navigation-progress";
 
 export const links: LinksFunction = () => [
   {
@@ -83,6 +84,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <body>
         <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
           <Header />
+          <NavigationProgress />
           {children}
           <Footer />
         </div>
