@@ -1,6 +1,7 @@
 import { MetaFunction } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { format } from "date-fns";
+
 import Loader from "~/components/loader";
 
 export const meta: MetaFunction = () => [
