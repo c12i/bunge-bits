@@ -1,4 +1,4 @@
-import { MetaFunction } from "@remix-run/node";
+import { HeadersFunction, MetaFunction } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { format } from "date-fns";
 
@@ -19,31 +19,21 @@ export async function loader() {
     const res = await fetch("https://bungebits-status.c12i.xyz/status");
     const data: BackendStatus = await res.json();
 
-    return Response.json(
-      {
-        healthy: data.healthy ?? false,
-        next_tick: data.next_tick ?? null,
-      },
-      {
-        headers: {
-          "Cache-Control": "public, max-age=1800, stale-while-revalidate=3600",
-        },
-      }
-    );
+    return Response.json({
+      healthy: data.healthy ?? false,
+      next_tick: data.next_tick ?? null,
+    });
   } catch {
-    return Response.json(
-      {
-        healthy: false,
-        next_tick: null,
-      },
-      {
-        headers: {
-          "Cache-Control": "public, max-age=1800, stale-while-revalidate=3600",
-        },
-      }
-    );
+    return Response.json({
+      healthy: false,
+      next_tick: null,
+    });
   }
 }
+
+export const headers: HeadersFunction = () => ({
+  "Cache-Control": "public, max-age=1800, stale-while-revalidate=3600",
+});
 
 export default function AboutPage() {
   const { healthy, next_tick } = useLoaderData<typeof loader>();

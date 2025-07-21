@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma-app/client";
-import { LoaderFunctionArgs } from "@remix-run/node";
+import { HeadersFunction, LoaderFunctionArgs } from "@remix-run/node";
 import {
   Link,
   useLoaderData,
@@ -34,10 +34,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const query = url.searchParams.get("q")?.trim() || "";
   const page = Math.max(parseInt(url.searchParams.get("page") || "1", 10), 1);
-
-  const CACHE_HEADERS = {
-    "Cache-Control": "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400",
-  };
 
   if (query) {
     try {
@@ -74,14 +70,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
         ),
       ]);
 
-      return Response.json(
-        { streams, total: countResult[0].count, page, query },
-        { headers: CACHE_HEADERS }
-      );
+      return Response.json({ streams, total: countResult[0].count, page, query });
     } catch (error) {
       console.error("Search error:", error);
       const { streams, total } = await fallbackSearch(query, page);
-      return Response.json({ streams, total, page, query }, { headers: CACHE_HEADERS });
+      return Response.json({ streams, total, page, query });
     }
   }
 
@@ -98,7 +91,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }),
   ]);
 
-  return Response.json({ streams, total, page, query: null }, { headers: CACHE_HEADERS });
+  return Response.json({ streams, total, page, query: null });
 }
 
 async function fallbackSearch(query: string, page: number) {
@@ -126,6 +119,10 @@ async function fallbackSearch(query: string, page: number) {
 
   return { streams, total: count };
 }
+
+export const headers: HeadersFunction = () => ({
+  "Cache-Control": "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400",
+});
 
 export default function Index() {
   const { streams, total, query } = useLoaderData<typeof loader>();
