@@ -14,7 +14,7 @@ import {
 import ErrorPage from "./components/error-page";
 import Footer from "./components/footer";
 import Header from "./components/header";
-import { NavigationProgress } from "./components/NavigationProgress";
+import { NavigationProgress } from "./components/navigation-progress";
 
 export const links: LinksFunction = () => [
   {
