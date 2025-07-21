@@ -1,8 +1,7 @@
 import { MetaFunction } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { format } from "date-fns";
-
-import { useHasHydrated } from "~/lib/hooks";
+import Loader from "~/components/loader";
 
 export const meta: MetaFunction = () => [
   { title: "About | Bunge Bits" },
@@ -47,15 +46,6 @@ export async function loader() {
 
 export default function AboutPage() {
   const { healthy, next_tick } = useLoaderData<typeof loader>();
-  const hasHydrated = useHasHydrated();
-
-  if (!hasHydrated) {
-    return (
-      <div className="flex flex-col items-center py-12">
-        <div className="w-6 h-6 border-4 border-destructive border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12 space-y-6">
@@ -152,4 +142,8 @@ export default function AboutPage() {
       </div>
     </div>
   );
+}
+
+export function HydrationFallback() {
+  return <Loader />;
 }

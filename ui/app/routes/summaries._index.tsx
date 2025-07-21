@@ -22,7 +22,7 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
-import { useDebounce, useHasHydrated } from "~/lib/hooks";
+import { useDebounce } from "~/lib/hooks";
 import { highlightText } from "~/lib/text-highlight";
 import { formatDate, formatDuration } from "~/lib/utils";
 
@@ -137,12 +137,6 @@ export default function Index() {
 
   const { inputValue, handleInputChange, handleClearSearch } = useSearch();
   const queryTerms = query?.toLowerCase().trim() || "";
-
-  const hasHydrated = useHasHydrated();
-
-  if (!hasHydrated) {
-    return <SummariesSkeleton />;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
@@ -268,6 +262,10 @@ export default function Index() {
       </main>
     </div>
   );
+}
+
+export function HydrationFallback() {
+  return <SummariesSkeleton />;
 }
 
 export function Pagination({ currentPage, totalPages }: PaginationProps) {

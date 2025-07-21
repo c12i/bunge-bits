@@ -8,7 +8,6 @@ import SummarySkeleton from "~/components/detail-page-skeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { useHasHydrated } from "~/lib/hooks";
 import { highlightChildren, highlightText } from "~/lib/text-highlight";
 import { formatDate, formatDuration } from "~/lib/utils";
 
@@ -77,12 +76,6 @@ export default function StreamSummary() {
 
   const query = new URLSearchParams(location.search).get("q") || "";
   const queryTerm = query?.toLowerCase().trim() || "";
-
-  const hasHydrated = useHasHydrated();
-
-  if (!hasHydrated) {
-    return <SummarySkeleton />;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
@@ -172,4 +165,8 @@ export default function StreamSummary() {
       </main>
     </div>
   );
+}
+
+export function HydrationFallback() {
+  return <SummarySkeleton />;
 }
