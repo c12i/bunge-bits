@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma-app/client";
-import { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
+import { HeadersFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { Link, useLoaderData, useLocation } from "@remix-run/react";
 import { ArrowLeft, Calendar, Clock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -29,20 +29,16 @@ export async function loader({ params }: LoaderFunctionArgs) {
       throw new Response("Not Found", { status: 404 });
     }
 
-    return Response.json(
-      { stream },
-      {
-        headers: {
-          "Cache-Control":
-            "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400",
-        },
-      }
-    );
+    return Response.json({ stream });
   } catch (err) {
     console.error("DB fetch failed:", err);
     throw new Response("Internal Server Error", { status: 500 });
   }
 }
+
+export const headers: HeadersFunction = () => ({
+  "Cache-Control": "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400",
+});
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   if (!data) {
