@@ -1,13 +1,21 @@
 import { type ClassValue, clsx } from "clsx";
-import { format } from "date-fns";
+import { differenceInDays, format, formatDistanceToNowStrict } from "date-fns";
 import { twMerge } from "tailwind-merge";
 
 export const cn = (...inputs: ClassValue[]) => {
   return twMerge(clsx(inputs));
 };
 
-export const formatDate = (dateString: string) => {
-  return format(new Date(dateString), "d MMMM yyyy");
+export const formatDate = (dateInput: Date | string | number) => {
+  const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+
+  const daysAgo = differenceInDays(new Date(), date);
+
+  if (daysAgo < 7) {
+    return formatDistanceToNowStrict(date, { addSuffix: true });
+  } else {
+    return format(date, "d MMMM yyyy");
+  }
 };
 
 export const formatDuration = (duration: string) => {
