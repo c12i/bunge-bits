@@ -39,7 +39,7 @@ export default function AboutPage() {
   const { healthy, next_tick } = useLoaderData<typeof loader>();
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12 space-y-6">
+    <div className="max-w-3xl mx-auto px-8 py-12 space-y-6">
       <h1 className="text-3xl font-bold">About Bunge Bits</h1>
 
       <p>

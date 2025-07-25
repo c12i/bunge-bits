@@ -124,7 +124,7 @@ export default function StreamSummary() {
                 </div>
               </div>
 
-              <CardContent className="space-y-8 px-10">
+              <CardContent className="space-y-8 lg:px-10">
                 <div>
                   <div className="markdown">
                     <ReactMarkdown>{cleanedMarkdown}</ReactMarkdown>
