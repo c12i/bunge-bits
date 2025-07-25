@@ -2,6 +2,14 @@ import { type ClassValue, clsx } from "clsx";
 import { differenceInDays, format, formatDistanceToNowStrict } from "date-fns";
 import { twMerge } from "tailwind-merge";
 
+export const titleCase = (str: string) => {
+  if (str === null || str === "") return str;
+
+  return str.replace(/\w\S*/g, (txt) => {
+    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+  });
+};
+
 export const cn = (...inputs: ClassValue[]) => {
   return twMerge(clsx(inputs));
 };

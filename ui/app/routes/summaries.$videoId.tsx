@@ -1,15 +1,16 @@
 import { PrismaClient } from "@prisma-app/client";
 import { HeadersFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
-import { Link, useLoaderData, useLocation } from "@remix-run/react";
+import { Await, Link, useLoaderData, useLocation } from "@remix-run/react";
 import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { Suspense } from "react";
 import ReactMarkdown from "react-markdown";
 
 import SummarySkeleton from "~/components/detail-page-skeleton";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { highlightChildren, highlightText } from "~/lib/text-highlight";
-import { formatDate, formatDuration } from "~/lib/utils";
+import { highlightText } from "~/lib/text-highlight";
+import { formatDate, formatDuration, titleCase } from "~/lib/utils";
 
 const prisma = new PrismaClient();
 
@@ -74,92 +75,67 @@ export default function StreamSummary() {
   const queryTerm = query?.toLowerCase().trim() || "";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-6">
-          <Link to={{ pathname: `/summaries`, search: backSearch }}>
-            <Button variant="ghost" className="mb-4 hover:bg-white/50">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Summaries
-            </Button>
-          </Link>
+    <Suspense fallback={<SummarySkeleton />}>
+      <Await resolve={stream}>
+        <div className="min-h-screen">
+          <main className="container mx-auto px-4 py-8 max-w-4xl">
+            <div className="mb-6">
+              <Link to={{ pathname: `/summaries`, search: backSearch }}>
+                <Button variant="ghost" className="mb-4 hover:bg-transparent">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Summaries
+                </Button>
+              </Link>
+            </div>
+
+            <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader className="pb-6">
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
+                  <Badge variant="default" className="w-fit">
+                    {stream.house}
+                  </Badge>
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      {formatDate(stream.stream_timestamp)}
+                    </div>
+                    <div className="flex items-center">
+                      <Clock className="w-4 h-4 mr-2" />
+                      {formatDuration(stream.duration)}
+                    </div>
+                  </div>
+                </div>
+
+                <CardTitle className="text-2xl md:text-3xl leading-tight text-gray-900 mb-4">
+                  {highlightText(titleCase(stream.title), queryTerm)}
+                </CardTitle>
+              </CardHeader>
+
+              <div className="p-4">
+                <div className="rounded-md overflow-hidden aspect-video w-full">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${stream.video_id}`}
+                    className="w-full h-full"
+                    title="YouTube video player"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+
+              <CardContent className="space-y-8 px-10">
+                <div>
+                  <div className="markdown">
+                    <ReactMarkdown>{cleanedMarkdown}</ReactMarkdown>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </main>
         </div>
-
-        <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg">
-          <CardHeader className="pb-6">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-              <Badge variant="default" className="w-fit">
-                {stream.house}
-              </Badge>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                <div className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  {formatDate(stream.stream_timestamp)}
-                </div>
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-2" />
-                  {formatDuration(stream.duration)}
-                </div>
-              </div>
-            </div>
-
-            <CardTitle className="text-2xl md:text-3xl leading-tight text-gray-900 mb-4">
-              {highlightText(stream.title, queryTerm)}
-            </CardTitle>
-          </CardHeader>
-
-          <div className="p-4">
-            <div className="rounded-md overflow-hidden aspect-video w-full">
-              <iframe
-                src={`https://www.youtube.com/embed/${stream.video_id}`}
-                className="w-full h-full"
-                title="YouTube video player"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                loading="lazy"
-              />
-            </div>
-          </div>
-
-          <CardContent className="space-y-8">
-            <div>
-              <div className="markdown">
-                <ReactMarkdown
-                  components={{
-                    p({ children }) {
-                      return <p>{highlightChildren(children, queryTerm)}</p>;
-                    },
-                    h1({ children }) {
-                      return <h1>{highlightChildren(children, queryTerm)}</h1>;
-                    },
-                    h2({ children }) {
-                      return <h2>{highlightChildren(children, queryTerm)}</h2>;
-                    },
-                    li({ children }) {
-                      return <li>{highlightChildren(children, queryTerm)}</li>;
-                    },
-                    blockquote: ({ children }) => (
-                      <blockquote>{highlightChildren(children, queryTerm)}</blockquote>
-                    ),
-                    strong: ({ children }) => (
-                      <strong>{highlightChildren(children, queryTerm)}</strong>
-                    ),
-                    em: ({ children }) => (
-                      <em>{highlightChildren(children, queryTerm)}</em>
-                    ),
-                    span: ({ children }) => (
-                      <span>{highlightChildren(children, queryTerm)}</span>
-                    ),
-                  }}
-                >
-                  {cleanedMarkdown}
-                </ReactMarkdown>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </main>
-    </div>
+      </Await>
+    </Suspense>
   );
 }
 
