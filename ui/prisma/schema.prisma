@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model search_queries {
@@ -16,6 +17,17 @@ model search_queries {
   @@index([created_at], map: "idx_search_queries_created_at")
 }
 
+model sqlx_migrations {
+  version        BigInt   @id
+  description    String
+  installed_on   DateTime @default(now()) @db.Timestamptz(6)
+  success        Boolean
+  checksum       Bytes
+  execution_time BigInt
+
+  @@map("_sqlx_migrations")
+}
+
 model streams {
   video_id         String                   @id
   title            String
@@ -24,7 +36,7 @@ model streams {
   duration         String
   summary_md       String?
   timestamp_md     String?
-  is_published     Boolean                  @default(false)
+  is_published     Boolean                  @default(true)
   search_vector    Unsupported("tsvector")?
   house            String?                  @default(dbgenerated("\nCASE\n    WHEN ((title ~~* '%national assembly%'::text) AND (title ~~* '%senate%'::text)) THEN 'all'::text\n    WHEN (title ~~* '%national assembly%'::text) THEN 'national assembly'::text\n    WHEN (title ~~* '%senate%'::text) THEN 'senate'::text\n    ELSE 'unspecified'::text\nEND"))
 
