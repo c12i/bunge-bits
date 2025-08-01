@@ -22,12 +22,12 @@ chrono-tz = "0.10.0"
 dotenvy = "0.15.7"
 futures = "0.3.30"
 itertools = { workspace = true }
-openai_dive = "1.2.1"
+openai_dive = "1.2.4"
 rayon = "1.5"
 regex = "1.10.6"
 reqwest = { version = "0.12", features = ["json"] }
-sentry = "0.41.0"
-sentry-tracing = "0.41.0"
+sentry = "0.42.0"
+sentry-tracing = "0.42.0"
 serde = { workspace = true }
 serde_json = { workspace = true }
 stream_datastore = { version = "0.1.0", path = "../stream_datastore" }
